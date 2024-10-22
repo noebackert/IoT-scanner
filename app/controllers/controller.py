@@ -49,6 +49,8 @@ def login():
         flash('Login or password incorrect!', 'Error')
     return render_template('login.html', form=form)
 
+
+
 @login_required
 def dashboard():
     """
@@ -62,8 +64,19 @@ def dashboard():
             - rendered dashboard.html template
         """
     username = current_user.username
-    return render_template('dashboard.html', username=username)
-
+    user_role = current_user.role
+    
+    # Render different templates based on the role
+    if user_role == 999:
+        return render_template('dashboard_admin.html', username=username)
+    elif user_role == 1:
+        return render_template('dashboard_user.html', username=username)
+    elif user_role == 0:
+        return render_template('dashboard_guest.html', username=username)
+    else:
+        # Handle unexpected roles or redirect to an error page
+        return redirect(url_for('error_page'))
+    
 @login_required
 def about():
     """
@@ -109,18 +122,9 @@ def register():
 
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        print(form.password.data)
-        print(hashed_password)
-
-        new_user = UserDB(username=form.username.data, password=hashed_password, role=999)
+        new_user = UserDB(username=form.username.data, password=hashed_password, role=0)
         db.session.add(new_user)
         db.session.commit()
-        
-        # test password
-        user = UserDB.query.filter_by(username=form.username.data).first()
-        print(user.password)
-        
+        flash('Your account has been created! You are now able to log in', 'Success')        
         return redirect(url_for('blueprint.login'))
-    
-
     return render_template('register.html', form=form)
