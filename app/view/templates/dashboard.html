@@ -1,0 +1,28 @@
+<!-- 
+This file is part of PyFlaSQL.
+Original author: Raphael Viera (raphael.viera@emse.fr)
+License: check the LICENSE file.
+-->
+{% extends "base.html" %}
+{% block title %}PyFlaSQL{% endblock %}
+{% block content %}
+<div class="container p-5 my-5">
+    <!-- Main Title -->
+    <h1 class="text-center">{{username}}, welcome to PyFlaSQL!</h1>
+    <div class="container p-5 my-5 border">
+        <!-- Description -->
+        <p class="lead">
+            PyFlaSQL (Python - Flask - SQLite) is built using a combination of modern web technologies.
+        </p>
+        <p class="lead">
+            This application is a simple example of a web application that uses a PostgreSQL database to store data.
+        </p>
+        <p class="lead">
+            It uses the MVC architecture : model, view, controller
+        </p>       
+    </div>
+
+
+</div>
+{% endblock %}
+

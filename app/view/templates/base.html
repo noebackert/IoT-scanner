@@ -1,0 +1,87 @@
+<!--
+This file is part of PyFlaSQL.
+Original author: Raphael Viera (raphael.viera@emse.fr)
+License: check the LICENSE file.
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyFlaSQL - {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('blueprint.static', filename='css/bootstrap.css') }}">
+    <link rel="stylesheet" href="{{ url_for('blueprint.static', filename='css/sidebar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('blueprint.static', filename='css/forms.css') }}">
+</head>
+
+<body>
+    <div class="d-flex" id="wrapper">
+        <!-- Sidebar Menu-->
+        <div class="border-end bg-white" id="sidebar-wrapper">
+            <div class="sidebar-heading border-bottom bg-light">PyFlaSQL</div>
+            <div class="list-group list-group-flush">
+                <a class="list-group-item list-group-item-action list-group-item-light p-3" href="{{url_for('blueprint.dashboard')}}">Dashboard</a>
+                <a class="list-group-item list-group-item-action list-group-item-light p-3" href="{{url_for('blueprint.about')}}">About</a>   
+            </div>
+        </div>
+        
+        <!-- Page content wrapper-->
+        <div id="page-content-wrapper">
+            <!-- Top navigation-->
+            <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+                <div class="container-fluid">
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
+                            <li class="nav-item active"><a class="nav-link" href="{{url_for('blueprint.dashboard')}}">Home</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{url_for('blueprint.about')}}">About</a></li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{username}}</a>
+                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                    <a class="dropdown-item" href="{{url_for('blueprint.user_profile')}}">Profile</a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="{{url_for('blueprint.logout')}}">Logout</a>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+            <!-- Page content-->
+            <div class="container-fluid">
+                <!-- Alert messages (flashes) -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class=text-center mb-4>
+                    {% for category, message in messages %}
+                    {% if category.lower() == "success" %}
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {% elif category.lower() == "error" %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {% endif %}
+                <strong>{{ category }}:</strong> {{ message }}
+                        <button type="button" class="btn-close" data-dismiss="alert" aria-label="Close">
+                          <span aria-hidden="true"></span>
+                        </button>
+                    </div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+                {% endwith %}
+
+                <!-- Content added by the user -->
+                {% block content %}
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Bootstrap JS -->
+    <script src="{{ url_for('blueprint.static', filename='js/jquery-3.5.1.slim.min.js') }}"></script>
+    <script src="{{ url_for('blueprint.static', filename='js/popper.min.js') }}"></script>
+    <script src="{{ url_for('blueprint.static', filename='js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('blueprint.static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+
+</html>
