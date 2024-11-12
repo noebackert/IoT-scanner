@@ -4,6 +4,7 @@ Configures the address paths (URL routes)
 from flask import Blueprint
 from ...controllers.controller import index, login, register, dashboard, logout, about
 from ...controllers.user_profile.controller import user_profile
+from ...controllers.hotspot.controller import hotspot
 
 blueprint = Blueprint('blueprint', __name__, template_folder='../templates', static_folder='../../assets')
 
@@ -17,3 +18,7 @@ blueprint.route('/logout', methods=['GET', 'POST'])(logout)
 
 # User Profile
 blueprint.route('/user_profile/user_profile', methods=['GET', 'POST'])(user_profile)
+
+# Hotspot
+blueprint.route('/hotspot/hotspot', methods=['GET', 'POST'])(hotspot)
+

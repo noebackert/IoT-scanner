@@ -1,6 +1,6 @@
 <!-- 
 This file is part of PyFlaSQL.
-Original author: Raphael Viera (raphael.viera@emse.fr)
+Original author: Noé Backert (noe.backert@gmail.com)
 License: check the LICENSE file.
 -->
 {% extends "base.html" %}
@@ -8,21 +8,16 @@ License: check the LICENSE file.
 {% block content %}
 <div class="container p-5 my-5">
     <!-- Main Title -->
-    <h1 class="text-center">Hi {{username}}, welcome to the IoT Scanner as admin !</h1>
+    <h1 class="text-center">Hi {{username}}, welcome to the IoT Scanner as Admin !</h1>
     <div class="container p-5 my-5 border">
         <!-- Description -->
         <p class="lead">
-            PyFlaSQL (Python - Flask - SQLite) is built using a combination of modern web technologies.
+            This is the admin dashboard. Here you can manage the users and the devices.
         </p>
         <p class="lead">
-            This application is a simple example of a web application that uses a PostgreSQL database to store data.
+            You can see the list of devices, edit them, delete them. 
         </p>
-        <p class="lead">
-            It uses the MVC architecture : model, view, controller
-        </p>       
     </div>
-
-
 </div>
 {% endblock %}
 

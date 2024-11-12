@@ -1,6 +1,5 @@
 # This file is part of PyFlaSQL.
-# Original author: Raphael Viera (raphael.viera@emse.fr)
-# Contribution : ISMIN student X (ismin.student@etu.emse.fr)
+# Original author: Noé Backert (noe.backert@gmail.com)
 # License: check the LICENSE file.
 """
 Create forms to be passed to the frontend
