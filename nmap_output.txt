@@ -1,0 +1,4 @@
+# Nmap 7.93 scan initiated Thu Nov 14 23:15:08 2024 as: nmap -sn -oN nmap_output.txt 192.168.10.1/24
+Nmap scan report for 192.168.10.1
+Host is up.
+# Nmap done at Thu Nov 14 23:15:19 2024 -- 256 IP addresses (1 host up) scanned in 10.72 seconds

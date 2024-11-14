@@ -1,11 +1,13 @@
 """
 Business logic for the main application
 """
+import logging
 from flask import Flask, render_template, url_for, redirect
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
 import os
 from .sql import db, UserDB, create_admin
+
 
 class PyFlaSQL():
     """Create the application PyFlaSQL"""
@@ -29,9 +31,7 @@ class PyFlaSQL():
         app.config.from_object(config_path)  # Configuring from Python Files
         db.init_app(app)
         app.config['DEBUG'] = True  # Force debug mode for testing
-
         from ..view.routes.blueprint import blueprint
-
         app.register_blueprint(blueprint, url_prefix='/')
-        
+    
         return app

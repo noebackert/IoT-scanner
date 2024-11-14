@@ -1,8 +1,3 @@
-<!-- 
-This file is part of PyFlaSQL.
-Original author: Noé Backert (noe.backert@gmail.com)
-License: check the LICENSE file.
--->
 {% extends "base.html" %}
 {% block title %}PyFlaSQL{% endblock %}
 {% block content %}
@@ -13,36 +8,62 @@ License: check the LICENSE file.
 
     <div class="container p-5 my-5 border bg-light">
         <p class="lead">
-            Hotspot scan status: {{"Active" if content["form"].scan_status.data else "Inactive"}}
+            Hotspot scan status: {{ "Active" if content["form"].scan_status else "Inactive" }}
         </p>
         <form id="hotspotForm" method="POST" action="">
             {{ content["form"].hidden_tag() }}
-            <!-- Switch button to toggle on or off the hotspot, logic=hotspot_scan_status-->
+            <!-- Switch button to toggle on or off the hotspot -->
         
             <div class="form-group mt-2 form-check form-switch">
                 <label for="scanStatusSwitch">{{ "ON" if content["form"].scan_status.data else "OFF" }}</label>
                 {{ content["form"].scan_status(id="scanStatusSwitch", class="form-check-input", onchange="this.form.submit()") }}
             </div>
-            <!-- Show "scan in progress" if scan_status True -->
-            {% if content["form"].scan_status.data %}
-            <div class="form-group mt-2">
-                <label for="scanInProgress">Scan in progress...</label>
-            </div>
-            {% endif %}
-            
-
         </form>
     </div>
+
     <h3 class="mt-5 text-center">Output</h3>
 
     <div class="container p-5 my-5 border bg-light">
         <h5 class="mt-5">Connected Devices:</h5>
-        <p class="lead">
-            {{content["form"].scan_status.data}}
-            {{content["devices"]}}
-            {{content["logs"]}}
+        <p class="lead" id="deviceList">
+            {% if content["devices"] %}
+                <ul>
+                {% for device in content["devices"] %}
+                    <li>{{ device['ip'] }} (MAC: {{ device['mac'] }}, Vendor: {{ device['vendor'] }})</li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                No devices found.
+            {% endif %}
         </p>
     </div>
+
+    <script>
+        // Poll the server for updates every 5 seconds if the scan is active
+        let scanActive = {{ content["form"].scan_status | tojson }};
+        if (scanActive) {
+            setInterval(() => {
+                fetch('{{ url_for("blueprint.hotspot") }}', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.devices) {
+                        let deviceList = document.getElementById('deviceList');
+                        let devicesHtml = "<ul>";
+                        data.devices.forEach(device => {
+                            devicesHtml += `<li>${device.ip} (MAC: ${device.mac}, Vendor: ${device.vendor})</li>`;
+                        });
+                        devicesHtml += "</ul>";
+                        deviceList.innerHTML = devicesHtml;
+                    }
+                })
+                .catch(error => console.error('Error fetching scan results:', error));
+            }, 5000); // Polling every 5 seconds
+        }
+    </script>
 </div>
 {% endblock %}
-
