@@ -9,6 +9,5 @@ from wtforms import StringField, PasswordField, BooleanField, SubmitField, Integ
 from wtforms.validators import DataRequired, Email, InputRequired, Length, ValidationError, NumberRange
 
 class HotspotForm(FlaskForm):
-    scan_status = BooleanField(validators=[],label="ON/OFF SCAN", render_kw={"placeholder": "scan_status"}, default=False)
 
     submit = SubmitField('Submit')

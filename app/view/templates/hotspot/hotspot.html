@@ -8,15 +8,16 @@
 
     <div class="container p-5 my-5 border bg-light">
         <p class="lead">
-            Hotspot scan status: {{ "Active" if content["form"].scan_status else "Inactive" }}
+            Hotspot scan:
         </p>
         <form id="hotspotForm" method="POST" action="">
             {{ content["form"].hidden_tag() }}
             <!-- Switch button to toggle on or off the hotspot -->
         
-            <div class="form-group mt-2 form-check form-switch">
-                <label for="scanStatusSwitch">{{ "ON" if content["form"].scan_status.data else "OFF" }}</label>
-                {{ content["form"].scan_status(id="scanStatusSwitch", class="form-check-input", onchange="this.form.submit()") }}
+            <div class="form-group mt-2">
+                <!-- simple Button for scan -->
+
+                <button type="submit" class="btn btn-primary">Scan</button>
             </div>
         </form>
     </div>
@@ -37,33 +38,5 @@
             {% endif %}
         </p>
     </div>
-
-    <script>
-        // Poll the server for updates every 5 seconds if the scan is active
-        let scanActive = {{ content["form"].scan_status | tojson }};
-        if (scanActive) {
-            setInterval(() => {
-                fetch('{{ url_for("blueprint.hotspot") }}', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.devices) {
-                        let deviceList = document.getElementById('deviceList');
-                        let devicesHtml = "<ul>";
-                        data.devices.forEach(device => {
-                            devicesHtml += `<li>${device.ip} (MAC: ${device.mac}, Vendor: ${device.vendor})</li>`;
-                        });
-                        devicesHtml += "</ul>";
-                        deviceList.innerHTML = devicesHtml;
-                    }
-                })
-                .catch(error => console.error('Error fetching scan results:', error));
-            }, 5000); // Polling every 5 seconds
-        }
-    </script>
 </div>
 {% endblock %}

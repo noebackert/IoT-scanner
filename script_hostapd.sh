@@ -5,8 +5,13 @@ read -p "Enter Passphrase: " passphrase
 read -p "Access Point Wireless Interface (e.g., wlan1): " interface
 
 # Step 1: Set up AP interface with a static IP
-sudo ip addr add 192.168.10.1/24 dev $interface
-sudo ip link set "$interface" up
+if ip addr show $interface | grep -q "192.168.10.1/24"; then
+  echo "IP address already set on $interface"
+else
+  sudo ip addr add 192.168.10.1/24 dev $interface
+fi
+
+sudo nmcli dev set $interface managed no
 
 # Step 2: Configure Network Interfaces
 echo "Configuring network interfaces..."
@@ -26,7 +31,7 @@ iface $interface inet static
     netmask 255.255.255.0
 EOF
 systemctl enable networking
-
+sudo systemctl restart networking
 # Step 3: Install and Configure Hostapd
 sudo apt install -y hostapd
 echo "Creating hostapd configuration..."
@@ -68,6 +73,7 @@ sudo sysctl -p
 # Step 6: Set NAT and Firewall Rules
 echo "Setting up iptables rules..."
 mkdir -p /etc/iptables
+iptables -t nat -F POSTROUTING #Clear the NAT table first
 iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
 iptables -A FORWARD -i wlan0 -o $interface -m state --state RELATED,ESTABLISHED -j ACCEPT
 iptables -A FORWARD -i $interface -o wlan0 -j ACCEPT
@@ -78,6 +84,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get install -y iptables-persistent
 unset DEBIAN_FRONTEND
 
+sudo iw dev $interface set power_save off
 # Step 7: Enable netfilter-persistent and Restart Services
 echo "Enabling netfilter-persistent and restarting services..."
 systemctl enable netfilter-persistent
