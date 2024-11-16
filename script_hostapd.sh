@@ -67,7 +67,16 @@ sudo systemctl enable dnsmasq
 
 # Step 5: Enable IPv4 Forwarding
 echo "Enabling IPv4 forwarding..."
-echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+
+# Check if the setting is already in the file
+if ! grep -q "^net.ipv4.ip_forward=1" /etc/sysctl.conf; then
+    echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf > /dev/null
+    echo "Setting added to /etc/sysctl.conf."
+else
+    echo "Setting already exists in /etc/sysctl.conf."
+fi
+
+# Apply the settings
 sudo sysctl -p
 
 # Step 6: Set NAT and Firewall Rules

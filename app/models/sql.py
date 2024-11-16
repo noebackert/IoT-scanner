@@ -28,6 +28,27 @@ class UserDB(db.Model, UserMixin):
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.Integer, nullable=False, unique=False)
 
+class Device(db.Model):
+    """
+    Represents a Device model in the database.
+    
+    Attributes:
+        - id: Integer field, primary key of the Device.
+        - ip: String field, IP address of the Device, not nullable.
+        - mac: String field, MAC address of the Device, not nullable.
+        - vendor: String field, vendor of the Device, not nullable.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=True)
+    ipv4 = db.Column(db.String(15), nullable=False)
+    ipv6 = db.Column(db.String(39), nullable=True)
+    mac = db.Column(db.String(17), nullable=False)
+    vendor = db.Column(db.String(50), nullable=False)
+    model = db.Column(db.String(50), nullable=True)
+    version = db.Column(db.String(50), nullable=True)
+    is_online = db.Column(db.Boolean, default=True)
+
+
 def create_admin():
     """Create an admin user."""
     # Create an admin user if one doesn't exist
@@ -37,3 +58,4 @@ def create_admin():
         db.session.add(new_user)
         db.session.commit()
         print("Admin user created successfully!")
+

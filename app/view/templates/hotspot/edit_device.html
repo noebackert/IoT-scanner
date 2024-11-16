@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Editing..{% endblock %}
+{% block content %}
+<div class="container p-5 my-5 border bg-light">
+    <h1 class="text-center">Edit Device</h1>
+    <h5 class="mt-5">Selected device: </h5> 
+    <p class="lead">
+        {{content["selected_device"].mac}}
+    </p>
+    <form id="editDeviceForm" method="POST" action="">
+        {{ content["form"].hidden_tag() }}
+        <input type="hidden" name="mac" value="{{content['selected_device'].mac}}">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Old Value</th>
+                    <th>New Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th>Name</th>
+                    <td>{{content["selected_device"].name}}</td>
+                    <td>{{content["form"].name(class="form-control")}}</td>
+                </tr>
+                <tr>
+                    <th>Vendor</th>
+                    <td>{{content["selected_device"].vendor}}</td>
+                    <td>{{content["form"].vendor(class="form-control")}}</td>
+                </tr>
+                <tr>
+                    <th>Model</th>
+                    <td>{{content["selected_device"].model}}</td>
+                    <td>{{content["form"].model(class="form-control")}}</td>
+                </tr>
+                <tr>
+                    <th>Version</th>
+                    <td>{{content["selected_device"].version}}</td>
+                    <td>{{content["form"].version(class="form-control")}}</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="form-group mt-2">
+            <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+    </form>
+
+    <h5 class="mt-5">Connected Devices:</h5>
+    <p class="lead" id="deviceList">
+        <!-- take the selected device from url parameters -->
+        {% if content["devices"] %} 
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th>Name</th>
+                        <th>IPV4</th>
+                        <th>IPV6</th>
+                        <th>MAC Address</th>
+                        <th>Vendor</th>
+                        <th>Model</th>
+                        <th>Version</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in content["devices"] %}
+                        <tr>
+                            <td>
+                                
+                                {% if device['mac']!=content["selected_device"]["mac"] %}
+                                    <button type="button" action="{{url_for('blueprint.edit_device')}}" class="btn btn-primary" data-toggle="modal" data-target="#editDeviceModal" data-device-id="{{ device['mac'] }}">
+                                        Edit
+                                    </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-danger" data-device-id="{{ device['mac'] }}">
+                                    Delete
+                                </button>
+                            </td>
+                            <td>{{ device['name'] if device['name']!=None else "No name"}}</td>
+                            <td>{{ device['ipv4'] }}</td>
+                            <td>{{ device['ipv6'] if device['ipv6']!=None else "No IPV6"}}</td>
+                            <td>{{ device['mac'] }}</td>
+                            <td>{{ device['vendor'] if device['vendor']!=None else "No vendor"}}</td>
+                            <td>{{ device['model'] if device['model']!=None else "No model"}}</td>
+                            <td>{{ device['version'] if device['version']!=None else "No version"}}</td>
+                            <td>{{ device['is_online'] }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            No devices found.
+        {% endif %}
+    </p>
+</div>
+
+
+{% endblock %}

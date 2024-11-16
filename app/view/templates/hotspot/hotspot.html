@@ -1,6 +1,7 @@
 {% extends "base.html" %}
-{% block title %}PyFlaSQL{% endblock %}
+{% block title %}Hotspot{% endblock %}
 {% block content %}
+<meta http-equiv="refresh" content="5">
 <div class="container p-5 my-5">
     <!-- Main Title -->
     <h1 class="text-center">Hotspot</h1>
@@ -16,7 +17,6 @@
         
             <div class="form-group mt-2">
                 <!-- simple Button for scan -->
-
                 <button type="submit" class="btn btn-primary">Scan</button>
             </div>
         </form>
@@ -28,15 +28,50 @@
         <h5 class="mt-5">Connected Devices:</h5>
         <p class="lead" id="deviceList">
             {% if content["devices"] %}
-                <ul>
-                {% for device in content["devices"] %}
-                    <li>{{ device['ip'] }} (MAC: {{ device['mac'] }}, Vendor: {{ device['vendor'] }})</li>
-                {% endfor %}
-                </ul>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Name</th>
+                            <th>IPV4</th>
+                            <th>IPV6</th>
+                            <th>MAC Address</th>
+                            <th>Vendor</th>
+                            <th>Model</th>
+                            <th>Version</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for device in content["devices"] %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('blueprint.delete_device', device_id=device['mac']) }}">
+                                        <button class="btn btn-danger">Delete</button>
+                                    </a>
+                                    <a href="{{ url_for('blueprint.edit_device', device_id=device['mac']) }}">
+                                        <button class="btn btn-primary">Edit</button>
+                                    </a>
+                                   
+                                </td>
+                                <td>{{ device['name'] if device['name']!= Null else 'No name'}}</td>
+                                <td>{{ device['ipv4'] }}</td>
+                                <td>{{ device['ipv6'] if device['name']!=Null else "No IPV6"}}</td>
+                                <td>{{ device['mac'] }}</td>
+                                <td>{{ device['vendor'] if device['name']!=Null else "No vendor"}}</td>
+                                <td>{{ device['model'] if device['name']!=Null else "No model"}}</td>
+                                <td>{{ device['version'] if device['name']!=Null else "No version"}}</td>
+                                <td>{{ device['is_online'] }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             {% else %}
                 No devices found.
             {% endif %}
         </p>
     </div>
 </div>
+
+
 {% endblock %}

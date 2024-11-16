@@ -11,3 +11,15 @@ from wtforms.validators import DataRequired, Email, InputRequired, Length, Valid
 class HotspotForm(FlaskForm):
 
     submit = SubmitField('Submit')
+
+class EditDeviceForm(FlaskForm):
+    """
+    Form to edit device information
+    """
+    mac = StringField('MAC Address', validators=[DataRequired()])
+    # name with max length of 10 characters
+    name = StringField('Name', validators=[], render_kw={"placeholder": "Name"})
+    vendor = StringField('Vendor', validators=[], render_kw={"placeholder": "Vendor"})
+    model = StringField('Model', validators=[], render_kw={"placeholder": "Model"})
+    version = StringField('Version', validators=[], render_kw={"placeholder": "Version"})
+    submit = SubmitField('Submit')

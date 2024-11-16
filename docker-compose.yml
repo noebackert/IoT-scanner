@@ -30,3 +30,5 @@ services:
     depends_on:
       - db
     network_mode: host  # Same network for pgadmin
+    volumes:
+      - ./servers.json:/pgadmin4/servers.json
