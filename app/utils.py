@@ -35,18 +35,6 @@ def update_content(content):
     Update the content of the pages.
     """
     devices = Device.query.all()
-    content['devices'] = [
-            {
-                'id': d.id,
-                'name': d.name,
-                'ipv4': d.ipv4,
-                'ipv6': d.ipv6,
-                'mac': d.mac,
-                'vendor': d.vendor,
-                'model': d.model,
-                'version': d.version,
-                'is_online': d.is_online,
-                'avg_ping': d.avg_ping
-            }
-            for d in devices]
+    content['devices'] = [d for d in devices]
+    content['selected_devices'] = [d for d in devices if d.selected]
     return content

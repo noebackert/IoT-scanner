@@ -1,6 +1,6 @@
 from flask import Flask, redirect, render_template, url_for, jsonify, flash, request
 from flask_login import login_required
-from ...models.capture.forms import CaptureTimeForm, CaptureNumberForm
+from ...models.capture.forms import CaptureTimeForm, CaptureNumberForm, selectForm
 from ...models.logging_config import setup_logging
 from ...models.sql import Device, Capture, Monitoring, db
 from datetime import datetime
@@ -17,28 +17,34 @@ def capture():
     Login is required to view this page.
     """
     devices = Device.query.all()
-    selected_device_mac = request.args.get('device_id')
-    logger.info(f"Selected device : {selected_device_mac}")
-    if selected_device_mac:
-        selected_device = Device.query.filter_by(mac=selected_device_mac).first()
-    else:
-        selected_device = None
     content = {
         'timeCaptureForm': CaptureTimeForm(),
         'numberCaptureForm': CaptureNumberForm(),
-        'devices': [{'id': d.id,'name': d.name,'ipv4': d.ipv4,'ipv6': d.ipv6,'mac': d.mac,'vendor': d.vendor,'model': d.model,'version': d.version,'is_online': d.is_online} for d in devices],
-        'selected_device': selected_device
+        'selectForm': selectForm(),
+        'devices': [d for d in devices],
+        'selected_devices': [d for d in devices if d.selected]
         }
-    logger.info(f"selected_device : {selected_device}")
     content = update_content(content)
-    logger.info(f"Content : {content}")
+    if content['selectForm'].validate_on_submit():
+        if content['selectForm'].action.data == "select":
+            selected_device = Device.query.filter_by(id=content['selectForm'].device.data).first()
+            selected_device.selected = True
+            content = update_content(content)
+            db.session.commit()
+            return render_template(url_for('blueprint.capture') + '.html', content=content)
+        else:
+            selected_device = Device.query.filter_by(id=content['selectForm'].device.data).first()
+            selected_device.selected = False
+            content = update_content(content)
+            db.session.commit()
+            return render_template(url_for('blueprint.capture') + '.html', content=content)
+    
     if content['timeCaptureForm'].validate_on_submit():
-        logger.info(f"TimeCaptureForm : {content['timeCaptureForm'].timeSelector.data}")
         time = content['timeCaptureForm'].timeSelector.data
-        logger.info(f"TimeCaptureForm : {time}")
         # if no device is selected, capture all devices
-        if selected_device: 
-            get_capture(time=time, device=selected_device)
+        logger.info(f"Selected devices: {content['selected_devices']}")
+        if content['selected_devices']:
+            get_capture(time=time, list_device=content['selected_devices'])
             flash(f"Capture done for {time} seconds", 'success')
             return redirect(url_for('blueprint.capture'))
         else:
@@ -46,11 +52,9 @@ def capture():
             flash(f"Capture done for {time} seconds", 'success')
             return redirect(url_for('blueprint.capture'))
     if content['numberCaptureForm'].validate_on_submit():
-        logger.info(f"NumberCaptureForm : {content['numberCaptureForm'].numberSelector.data}")
         number = content['numberCaptureForm'].numberSelector.data
-        logger.info(f"NumberCaptureForm : {number}")
-        if selected_device:
-            get_capture(number=number, device=selected_device)
+        if content['selected_devices']:
+            get_capture(number=number, list_device=content['selected_devices'])
             flash(f"Capture done with {number} packets", 'success')
             return redirect(url_for('blueprint.capture'))
         else:
@@ -61,48 +65,60 @@ def capture():
     return render_template(url_for('blueprint.capture') + '.html', content=content)
 
 
-def get_capture(time:int=None, number:int=None, device:Device=None)->bool:
+def get_capture(time:int=None, number:int=None, list_device:list[Device]=None)->bool:
     """
     Get a capture from a device.
     
     Args:
         - time: Integer, time to capture packets.
         - count: Integer, number of packets to capture.
-        - device: Device, device to capture packets.
+        - device: list of devices to capture packets.
         
     Returns:
         - List of packets.
     """
-    if device:
-        logger.info("Device is selected")
-        if device.is_online:
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+    interface = os.getenv('INTERFACE', 'wlan1')
+
+    try:
+        if list_device is not None:
+            if len(list_device) > 0:
+                filter_host = "host " + " or host ".join([d.ipv4 for d in list_device])
+                device_ids = "_".join([str(d.id) for d in list_device])
+                logger.info(f"Capture devices: {device_ids}")
+                filepath = f"app/static/capture/{device_ids}_{timestamp}.pcap"
+                logger.info(f"Capture file: {filepath}")
+                for device in list_device:
+                    if time:
+                        packets = sniff(timeout=time, filter=filter_host, iface=interface)
+                        logger.info(f"Capture device {device} for {time} seconds")
+                        wrpcap(filepath, packets )
+                        save_capture(device.id, filepath)
+                    elif number:
+                        packets = sniff(count=number, filter=filter_host, iface=interface)
+                        logger.info(f"Capture device {device} with {number} packets")
+                        wrpcap(filepath, packets)
+                        save_capture(device.id, filepath)
+                    return True
+                else:   
+                    logger.error(f"Device {device} is offline")
+                    return False
+        else:
+            filepath = f"app/static/capture/all_{timestamp}.pcap"
             if time:
-                logger.info(f"Capture device {device} for {time} seconds")
-                wrpcap(f"app/static/capture/{device.id}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.pcap", sniff(timeout=time, filter=f"host {device.ipv4}", iface=os.getenv('INTERFACE', 'wlan1')))
-                save_capture(device.id, f"app/static/capture/{device.id}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.pcap")
-                return True
+                logger.info(f"Capture all devices for {time} seconds")
+                packets = sniff(timeout=time, iface=interface)
+                wrpcap(filepath, packets )
+                save_capture(1, filepath)
             elif number:
-                logger.info(f"Capture device {device} with {number} packets")
-                wrpcap(f"app/static/capture/{device.id}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.pcap", sniff(count=number, filter=f"host {device.ipv4}", iface=os.getenv('INTERFACE', 'wlan1')))
-                save_capture(device.id, f"app/static/capture/{device.id}_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.pcap")
-                return True
-        else:   
-            logger.error(f"Device {device} is offline")
-            return False
-    else:
-        if time:
-            logger.info(f"Capture all devices for {time} seconds")
-            wrpcap(f"app/static/capture/all_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.pcap", sniff(timeout=time, iface=os.getenv('INTERFACE', 'wlan1')))
-            hotspot_device = Device.query.filter_by(id=1).first()
-            save_capture(hotspot_device.id, f"app/static/capture/all_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.pcap")
+                packets = sniff(count=number, iface=interface)
+                logger.info(f"Capture all devices with {number} packets")
+                wrpcap(filepath, packets)
+                save_capture(1, filepath)
             return True
-        elif number:
-            logger.info(f"Capture all devices with {number} packets")
-            wrpcap(f"app/static/capture/all_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.pcap", sniff(count=number, iface=os.getenv('INTERFACE', 'wlan1')))
-            hotspot_device = Device.query.filter_by(id=1).first()
-            save_capture(hotspot_device.id, f"app/static/capture/all_{datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}.pcap")
-            return True
-    return False
+    except Exception as e:
+        logger.error(f"Error during capture: {e}")
+        return False
 
 def save_capture(device_id, file_path):
     """

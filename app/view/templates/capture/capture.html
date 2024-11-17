@@ -11,7 +11,19 @@
 
     <div class="container p-5 my-5 border bg-light">
         <p class="lead">
-            Capture {% if content["selected_device"] %} <strong>{{content['selected_device'].ipv4 }}</strong>  {% else %}  <strong>all</strong> {% endif %} packets:
+            Capture packets of: 
+{% if content["selected_devices"] %}
+    {% for device in content["selected_devices"]%}
+        <strong>{{ device.ipv4 }}</strong> 
+        {% if not loop.last %}
+            <strong>and</strong>
+        {% endif %}
+    {% endfor %}
+{% else %}
+    <strong>all</strong>
+{% endif %}
+
+
         </p>
         <div class="d-flex justify-content-between">
             <!-- First form -->
@@ -42,48 +54,57 @@
     <div class="container p-5 my-5 border bg-light">
         <p class="lead" id="deviceList">
             {% if content["devices"] %}
-                <table class="table table-striped">
-                    <thead>
+           
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th>Name</th>
+                        <th>IPV4</th>
+                        <th>IPV6</th>
+                        <th>MAC Address</th>
+                        <th>Vendor</th>
+                        <th>Model</th>
+                        <th>Version</th>
+                        <th>Status</th>
+                        <th>Avg Ping</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in content["devices"] %}
                         <tr>
-                            <th>Action</th>
-                            <th>Name</th>
-                            <th>IPV4</th>
-                            <th>IPV6</th>
-                            <th>MAC Address</th>
-                            <th>Vendor</th>
-                            <th>Model</th>
-                            <th>Version</th>
-                            <th>Status</th>
-                            <th>Avg Ping</th>
+                            <td>
+                                <form method="POST" action="">
+                                    {{ content['selectForm'].hidden_tag() }}
+                                    <input type="hidden" name="device" value="{{ device['id'] }}">
+                                    {% if not device.selected %}
+
+                                    <input type="hidden" name="action" value="select">
+
+                                    <a>
+                                        <button type="submit" class="btn btn-success">Select</button>
+                                    </a>
+                                    {% else %}
+                                    <input type="hidden" name="action" value="deselect">
+                                    <a>
+                                        <button type="submit" class="btn btn-danger">Deselect</button>
+                                    </a>
+                                    {% endif %}
+                                </form>                    
+                            </td>
+                            <td>{{ device['name'] if device['name']!= Null else 'No name'}}</td>
+                            <td>{{ device['ipv4'] }}</td>
+                            <td>{{ device['ipv6'] if device['name']!=Null else "No IPV6"}}</td>
+                            <td>{{ device['mac'] }}</td>
+                            <td>{{ device['vendor'] if device['name']!=Null else "No vendor"}}</td>
+                            <td>{{ device['model'] if device['name']!=Null else "No model"}}</td>
+                            <td>{{ device['version'] if device['name']!=Null else "No version"}}</td>
+                            <td>{{ "Connected" if device['is_online'] else "Disconnected" }}</td>
+                            <td> {{ "{:.2f}".format(device['avg_ping']) ~ ' ms' if device['name']!=Null else "No ping" }}</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {% for device in content["devices"] %}
-                            <tr>
-                                <td>
-                                    {% if device['mac'] != content['selected_device']['mac'] %}
-                                    <a href="{{ url_for('blueprint.capture', device_id=device['mac']) }}">
-                                        <button class="btn btn-success">Select</button>
-                                    </a>
-                                   {% else %}
-                                    <a href="{{ url_for('blueprint.capture') }}">
-                                        <button class="btn btn-danger">Deselect</button>
-                                    </a>
-                                   {% endif %}
-                                </td>
-                                <td>{{ device['name'] if device['name']!= Null else 'No name'}}</td>
-                                <td>{{ device['ipv4'] }}</td>
-                                <td>{{ device['ipv6'] if device['name']!=Null else "No IPV6"}}</td>
-                                <td>{{ device['mac'] }}</td>
-                                <td>{{ device['vendor'] if device['name']!=Null else "No vendor"}}</td>
-                                <td>{{ device['model'] if device['name']!=Null else "No model"}}</td>
-                                <td>{{ device['version'] if device['name']!=Null else "No version"}}</td>
-                                <td>{{ "Connected" if device['is_online'] else "Disconnected" }}</td>
-                                <td> {{ "{:.2f}".format(device['avg_ping']) ~ ' ms' if device['name']!=Null else "No ping" }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                    {% endfor %}
+                </tbody>
+            </table>
             {% else %}
                 No devices found.
             {% endif %}

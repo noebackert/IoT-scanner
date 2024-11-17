@@ -8,6 +8,11 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, IntegerField, TimeField
 from wtforms.validators import DataRequired, Email, InputRequired, Length, ValidationError, NumberRange
 
+class selectForm(FlaskForm):
+    device = IntegerField('Device', validators=[DataRequired()], render_kw={'placeholder': 'Device'}) 
+    action = StringField('Action', validators=[DataRequired()], render_kw={'placeholder': 'Action'})
+    submit = SubmitField('Submit')
+
 class CaptureTimeForm(FlaskForm):
     timeSelector = IntegerField('Time', validators=[DataRequired()], render_kw={'placeholder': 'In seconds'})
     submit = SubmitField('Submit')
@@ -15,3 +20,4 @@ class CaptureTimeForm(FlaskForm):
 class CaptureNumberForm(FlaskForm):
     numberSelector = IntegerField('Number', validators=[DataRequired(), NumberRange(min=1, max=1000)])
     submit = SubmitField('Submit')
+
