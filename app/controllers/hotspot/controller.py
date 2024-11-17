@@ -3,11 +3,13 @@ from flask_login import login_required
 from ...models.hotspot.forms import HotspotForm, EditDeviceForm
 from ...models.logging_config import setup_logging
 from scapy.all import ARP, Ether, srp
-from ...models.sql import Device, db
+from ...models.sql import Device, Monitoring, db
 import subprocess
 import threading
 import time
 import socket
+from datetime import datetime
+from ...utils import update_avg_ping
 
 logger = setup_logging()
 
@@ -20,42 +22,16 @@ def hotspot():
     devices = Device.query.all()
     content = {
         'form': HotspotForm(),
-        'devices': [
-            {
-                'id': d.id,
-                'name': d.name,
-                'ipv4': d.ipv4,
-                'ipv6': d.ipv6,
-                'mac': d.mac,
-                'vendor': d.vendor,
-                'model': d.model,
-                'version': d.version,
-                'is_online': d.is_online
-            }
-            for d in devices],
+        'devices': [{'id': d.id,'name': d.name,'ipv4': d.ipv4,'ipv6': d.ipv6,'mac': d.mac,'vendor': d.vendor,'model': d.model,'version': d.version,'is_online': d.is_online} for d in devices],
         }
     logger.info(f"Content : {content}")
-    # Check if scan is complete and set the message
-    logger.info("Hotspot page accessed")
     if content['form'].validate_on_submit():
-            devices = Device.query.all()
-            content = perform_network_scan(content)
-            content = update_content(content)
-    else:
         devices = Device.query.all()
-        content['devices'] = [
-            {
-                'id': d.id,
-                'name': d.name,
-                'ipv4': d.ipv4,
-                'ipv6': d.ipv6,
-                'mac': d.mac,
-                'vendor': d.vendor,
-                'model': d.model,
-                'version': d.version,
-                'is_online': d.is_online
-            }
-            for d in devices]
+        content = perform_network_scan(content)
+        content = update_content(content)
+        render_template(url_for('blueprint.hotspot') + '.html', content=content)
+    else:
+        content = update_content(content)
         logger.info("Scan status is True")
     return render_template(url_for('blueprint.hotspot') + '.html', content=content)
 
@@ -76,10 +52,10 @@ def perform_network_scan(content):
     """
     Perform a network scan to find devices connected to the hotspot & resend page when finished.
     """
-    target_ip = "192.168.10.50-150"
+    target_ip = "192.168.10.50-150"  # defined by the hotspot DHCP range
     devices = []
     with open("nmap_output.txt", "w") as output_file:
-        subprocess.run(["nmap", "-sn", target_ip], stdout=output_file)
+        subprocess.run(["nmap", "-sn","-PE", target_ip], stdout=output_file)
     logger.info(f"Running command: nmap -sn {target_ip}")
     
     # Perform a network scan to find devices connected to the hotspot
@@ -150,10 +126,26 @@ def monitor_device_connection(device):
     # Ensure the app context is available in the background thread
     with pyflasql_obj.myapp.app_context():
         while True:
-            response = subprocess.run(["ping", "-c", "1", device.ipv4], stdout=subprocess.DEVNULL)
+            with open('ping_output.txt', 'w') as output_file:
+                response = subprocess.run(["ping", "-c", "1", device.ipv4], stdout=output_file)
             is_online = response.returncode == 0
             logger.info(f"Ping: Device {device.ipv4} is {'online' if is_online else 'offline'}")
+            with open('ping_output.txt', 'r') as file:
+                lines = file.readlines()
+                for line in lines:
+                    if "time=" in line:
+                        ping = float(line.split(" ")[6].split("=")[1])
+                        logger.info(f"Ping: {ping} ms")
+                        break
+                else:
+                    ping = 999  # Set to 999 ms if ping fails
+                    is_online = False
 
+            # add the ping to the database
+            new_monitoring = Monitoring(device_id=device.id, ip=device.ipv4, ping=ping, date=datetime.now())
+            db.session.add(new_monitoring)
+            db.session.commit()
+            update_avg_ping()
             # Update the device status in the database
             db_device = Device.query.get(device.id)
             if db_device:
@@ -234,7 +226,8 @@ def update_content(content):
                 'vendor': d.vendor,
                 'model': d.model,
                 'version': d.version,
-                'is_online': d.is_online
+                'is_online': d.is_online,
+                'avg_ping': d.avg_ping
             }
             for d in devices]
     return content
@@ -250,6 +243,12 @@ def delete_device():
     selected_device = Device.query.filter_by(mac=device_mac).first()
     logger.info(f"Selected device: {selected_device}")
     if selected_device:
+        monitorToDelete = Monitoring.query.filter_by(device_id=selected_device.id).all()
+        logger.info(f"Monitor to delete: {monitorToDelete}")
+        for monitor in monitorToDelete:
+            db.session.delete(monitor)
+            db.session.commit()
+            logger.info(f"Monitor deleted: {monitor}")
         db.session.delete(selected_device)
         db.session.commit()
         flash("Device deleted successfully!", "success")

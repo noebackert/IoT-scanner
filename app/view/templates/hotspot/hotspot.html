@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Hotspot{% endblock %}
 {% block content %}
-<meta http-equiv="refresh" content="5">
+
+<!-- refresh the page every 10 sec -->
+<meta http-equiv="refresh" content="10">
 <div class="container p-5 my-5">
     <!-- Main Title -->
     <h1 class="text-center">Hotspot</h1>
@@ -11,21 +13,15 @@
         <p class="lead">
             Hotspot scan:
         </p>
-        <form id="hotspotForm" method="POST" action="">
-            {{ content["form"].hidden_tag() }}
-            <!-- Switch button to toggle on or off the hotspot -->
-        
-            <div class="form-group mt-2">
-                <!-- simple Button for scan -->
-                <button type="submit" class="btn btn-primary">Scan</button>
-            </div>
+        <form method="POST" action="{{ url_for('blueprint.hotspot') }}">
+            {{ content['form'].hidden_tag() }}
+            <button type="submit" class="btn btn-primary mt-3">Scan new devices</button>
         </form>
     </div>
 
-    <h3 class="mt-5 text-center">Output</h3>
+    <h3 class="mt-5 text-center">Connected Devices:</h3>
 
     <div class="container p-5 my-5 border bg-light">
-        <h5 class="mt-5">Connected Devices:</h5>
         <p class="lead" id="deviceList">
             {% if content["devices"] %}
                 <table class="table table-striped">
@@ -40,6 +36,7 @@
                             <th>Model</th>
                             <th>Version</th>
                             <th>Status</th>
+                            <th>Avg Ping</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -61,7 +58,8 @@
                                 <td>{{ device['vendor'] if device['name']!=Null else "No vendor"}}</td>
                                 <td>{{ device['model'] if device['name']!=Null else "No model"}}</td>
                                 <td>{{ device['version'] if device['name']!=Null else "No version"}}</td>
-                                <td>{{ device['is_online'] }}</td>
+                                <td>{{ "Connected" if device['is_online'] else "Disconnected" }}</td>
+                                <td> {{ "{:.2f}".format(device['avg_ping']) ~ ' ms' if device['name']!=Null else "No ping" }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -75,3 +73,4 @@
 
 
 {% endblock %}
+

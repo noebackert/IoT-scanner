@@ -5,7 +5,10 @@ WORKDIR /app
 # Copy requirements and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN apt-get update && apt-get install -y net-tools iputils-ping nmap arp-scan
+RUN apt-get update && apt-get install -y \
+    net-tools iputils-ping nmap arp-scan \
+    postgresql-client \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 # Copy the rest of the application
 COPY . .
 

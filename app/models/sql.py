@@ -34,9 +34,14 @@ class Device(db.Model):
     
     Attributes:
         - id: Integer field, primary key of the Device.
-        - ip: String field, IP address of the Device, not nullable.
+        - name: String field, name of the Device.
+        - ipv4: String field, IPv4 address of the Device, not nullable.
+        - ipv6: String field, IPv6 address of the Device.
         - mac: String field, MAC address of the Device, not nullable.
         - vendor: String field, vendor of the Device, not nullable.
+        - model: String field, model of the Device.
+        - version: String field, version of the Device.
+        - is_online: Boolean field, status of the Device.
     """
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=True)
@@ -47,7 +52,21 @@ class Device(db.Model):
     model = db.Column(db.String(50), nullable=True)
     version = db.Column(db.String(50), nullable=True)
     is_online = db.Column(db.Boolean, default=True)
-
+    avg_ping = db.Column(db.Float, default=0)
+class Monitoring(db.Model):
+    """
+    Represents a Monitoring model in the database.
+    
+    Attributes:
+        - id: Integer field, primary key of the Monitoring.
+        - device_id: Integer field, foreign key to the Device.
+        - ping: Integer field, ping of the Monitoring.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    device_id = db.Column(db.Integer, db.ForeignKey('device.id'), nullable=False)
+    ip = db.Column(db.String(15), nullable=False)
+    ping = db.Column(db.Float, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
 
 def create_admin():
     """Create an admin user."""

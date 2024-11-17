@@ -1,1 +1,0 @@
-64 bytes from 192.168.10.93: icmp_seq=1 ttl=64 time=2.90 ms

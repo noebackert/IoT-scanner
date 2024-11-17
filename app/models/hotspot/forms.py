@@ -9,7 +9,6 @@ from wtforms import StringField, PasswordField, BooleanField, SubmitField, Integ
 from wtforms.validators import DataRequired, Email, InputRequired, Length, ValidationError, NumberRange
 
 class HotspotForm(FlaskForm):
-
     submit = SubmitField('Submit')
 
 class EditDeviceForm(FlaskForm):
