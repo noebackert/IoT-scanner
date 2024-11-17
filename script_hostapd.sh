@@ -1,8 +1,33 @@
 #!/bin/bash
 # Prompt for SSID and Passphrase
+
 read -p "Enter SSID: " ssid
 read -p "Enter Passphrase: " passphrase
 read -p "Access Point Wireless Interface (e.g., wlan1): " interface
+
+
+# Path to the .env file
+env_file=".env"
+
+# Update or add entries in the .env file
+update_env_file() {
+  local key=$1
+  local value=$2
+
+  # Check if the key exists in the .env file
+  if grep -q "^$key=" "$env_file"; then
+    # Update the existing key-value pair
+    sed -i "s|^$key=.*|$key=$value|" "$env_file"
+  else
+    # Add the key-value pair if it doesn't exist
+    echo "$key=$value" >> "$env_file"
+  fi
+}
+
+# Update .env values
+update_env_file "HOTSPOT_SSID" "$ssid"
+update_env_file "HOTSPOT_PASSWORD" "$passphrase"
+update_env_file "INTERFACE" "$interface"
 
 # Step 1: Set up AP interface with a static IP
 if ip addr show $interface | grep -q "192.168.10.1/24"; then
@@ -10,6 +35,7 @@ if ip addr show $interface | grep -q "192.168.10.1/24"; then
 else
   sudo ip addr add 192.168.10.1/24 dev $interface
 fi
+
 
 sudo nmcli dev set $interface managed no
 

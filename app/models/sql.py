@@ -53,6 +53,7 @@ class Device(db.Model):
     version = db.Column(db.String(50), nullable=True)
     is_online = db.Column(db.Boolean, default=True)
     avg_ping = db.Column(db.Float, default=0)
+
 class Monitoring(db.Model):
     """
     Represents a Monitoring model in the database.
@@ -68,6 +69,22 @@ class Monitoring(db.Model):
     ping = db.Column(db.Float, nullable=False)
     date = db.Column(db.DateTime, nullable=False)
 
+class Capture(db.Model):
+    """
+    Represents a Capture model in the database.
+    
+    Attributes:
+        - id: Integer field, primary key of the Capture.
+        - device_id: Integer field, foreign key to the Device.
+        - file_path: String field, path to the Capture file.
+        - date: DateTime field, date of the Capture.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    device_id = db.Column(db.Integer, db.ForeignKey('device.id'), nullable=False)
+    file_path = db.Column(db.String(255), nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
+
+
 def create_admin():
     """Create an admin user."""
     # Create an admin user if one doesn't exist
@@ -78,3 +95,13 @@ def create_admin():
         db.session.commit()
         print("Admin user created successfully!")
 
+
+def create_hotspot_device():
+    """Create a hotspot device."""
+    # Create a hotspot device if one doesn't exist
+    new_device=Device.query.filter_by(mac=os.getenv("HOTSPOT_MAC")).first()
+    if not new_device:
+        new_device = Device(name=os.getenv("HOTSPOT_SSID"), ipv4=os.getenv("HOTSPOT_IPV4"), mac=os.getenv("HOTSPOT_MAC"), vendor=os.getenv("HOTSPOT_VENDOR"))
+        db.session.add(new_device)
+        db.session.commit()
+        print("Hotspot device created successfully!")

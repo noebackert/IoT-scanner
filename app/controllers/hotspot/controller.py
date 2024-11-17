@@ -143,6 +143,7 @@ def monitor_device_connection(device):
 
             # add the ping to the database
             new_monitoring = Monitoring(device_id=device.id, ip=device.ipv4, ping=ping, date=datetime.now())
+            logger.info(f"Monitoring: {new_monitoring.date} {new_monitoring.ip} {new_monitoring.ping}")
             db.session.add(new_monitoring)
             db.session.commit()
             update_avg_ping()

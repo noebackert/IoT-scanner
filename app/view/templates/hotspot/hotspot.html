@@ -43,12 +43,17 @@
                         {% for device in content["devices"] %}
                             <tr>
                                 <td>
+                                    {% if device['id']!= 1%}
                                     <a href="{{ url_for('blueprint.delete_device', device_id=device['mac']) }}">
                                         <button class="btn btn-danger">Delete</button>
                                     </a>
+                                   
                                     <a href="{{ url_for('blueprint.edit_device', device_id=device['mac']) }}">
                                         <button class="btn btn-primary">Edit</button>
                                     </a>
+                                    {% else %}
+                                    <strong>Hotspot</strong>
+                                    {% endif %}
                                    
                                 </td>
                                 <td>{{ device['name'] if device['name']!= Null else 'No name'}}</td>

@@ -68,7 +68,7 @@
                     {% for device in content["devices"] %}
                         <tr>
                             <td>
-                                
+                                {% if device['id']!= 1%}
                                 {% if device['mac']!=content["selected_device"]["mac"] %}
                                     <button type="button" action="{{url_for('blueprint.edit_device')}}" class="btn btn-primary" data-toggle="modal" data-target="#editDeviceModal" data-device-id="{{ device['mac'] }}">
                                         Edit
@@ -77,6 +77,10 @@
                                 <a href="{{ url_for('blueprint.delete_device', device_id=device['mac']) }}">
                                     <button class="btn btn-danger">Delete</button>
                                 </a>
+                                {% else %}
+                                    <strong>Hotspot</strong>
+                                {% endif %}
+
 
                             </td>
                             <td>{{ device['name'] if device['name']!=None else "No name"}}</td>

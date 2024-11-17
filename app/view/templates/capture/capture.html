@@ -15,7 +15,7 @@
         </p>
         <div class="d-flex justify-content-between">
             <!-- First form -->
-            <form method="POST" action="{{ url_for('blueprint.capture') }}" class="w-50 me-2">
+            <form method="POST" action="" class="w-50 me-2">
                 {{ content['timeCaptureForm'].hidden_tag() }}
                 <div class="form-group mt-2">
                     <label for="time">Capture time (in seconds):</label>
@@ -25,7 +25,7 @@
             </form>
     
             <!-- Second form -->
-            <form method="POST" action="{{ url_for('blueprint.capture') }}" class="w-50 ms-2">
+            <form method="POST" action="" class="w-50 ms-2">
                 {{ content['numberCaptureForm'].hidden_tag() }}
                 <div class="form-group mt-2">
                     <label for="number">Number of packets:</label>

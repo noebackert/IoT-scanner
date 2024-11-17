@@ -6,7 +6,7 @@ from flask import Flask, render_template, url_for, redirect
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
 import os
-from .sql import db, UserDB, create_admin
+from .sql import db, UserDB, create_admin, create_hotspot_device
 
 
 class PyFlaSQL():
@@ -16,6 +16,7 @@ class PyFlaSQL():
         with self.myapp.app_context():
             db.create_all()
             create_admin()
+            create_hotspot_device()
 
         # debug - print the URL map of blueprint (check the console)
         # print(self.myapp.url_map)
