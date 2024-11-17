@@ -53,7 +53,8 @@ class Device(db.Model):
     version = db.Column(db.String(50), nullable=True)
     is_online = db.Column(db.Boolean, default=True)
     avg_ping = db.Column(db.Float, default=0)
-
+    selected = db.Column(db.Boolean, default=False)
+    
 class Monitoring(db.Model):
     """
     Represents a Monitoring model in the database.

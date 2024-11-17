@@ -22,7 +22,7 @@ def hotspot():
     devices = Device.query.all()
     content = {
         'form': HotspotForm(),
-        'devices': [{'id': d.id,'name': d.name,'ipv4': d.ipv4,'ipv6': d.ipv6,'mac': d.mac,'vendor': d.vendor,'model': d.model,'version': d.version,'is_online': d.is_online} for d in devices],
+        'devices': [d for d in devices],
         }
     logger.info(f"Content : {content}")
     if content['form'].validate_on_submit():
@@ -53,7 +53,6 @@ def perform_network_scan(content):
     Perform a network scan to find devices connected to the hotspot & resend page when finished.
     """
     target_ip = "192.168.10.50-150"  # defined by the hotspot DHCP range
-    devices = []
     with open("nmap_output.txt", "w") as output_file:
         subprocess.run(["nmap", "-sn","-PE", target_ip], stdout=output_file)
     logger.info(f"Running command: nmap -sn {target_ip}")
@@ -87,10 +86,7 @@ def perform_network_scan(content):
                 ipv6 = reverse_dns_lookup(ipv4)
 
                 # Append device info including IPv6 if found
-                devices.append({'ipv4': ipv4, 'mac': mac, 'vendor': vendor, 'ipv6': ipv6})
                 logger.info(f"Found device: {ipv4} {mac} {vendor} {ipv6 if ipv6 else 'No IPv6 found'}")
-                logger.info(f"Found {len(devices)} devices")
-                content["devices"] = devices
 
                 # Check if device already exists in the database
                 device = Device.query.filter_by(mac=mac).first()
@@ -175,19 +171,7 @@ def edit_device():
     content = {
         "form": EditDeviceForm(),
         "selected_device": selected_device,
-        "devices": [
-            {
-                'id': d.id,
-                'name': d.name,
-                'ipv4': d.ipv4,
-                'ipv6': d.ipv6,
-                'mac': d.mac,
-                'vendor': d.vendor,
-                'model': d.model,
-                'version': d.version,
-                'is_online': d.is_online
-            }
-            for d in devices
+        "devices": [d for d in devices
         ],
     }
     logger.info(f"Form validation status: {content['form'].validate_on_submit()}")
