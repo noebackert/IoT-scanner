@@ -9,7 +9,7 @@ import threading
 import time
 import socket
 from datetime import datetime
-from ...utils import update_avg_ping
+from ...utils import update_avg_ping, update_content
 
 logger = setup_logging()
 
@@ -211,26 +211,7 @@ def edit_device():
     return render_template(url_for('blueprint.edit_device') +'.html', content=content)
 
 
-def update_content(content):
-    """
-    Update the content of the pages.
-    """
-    devices = Device.query.all()
-    content['devices'] = [
-            {
-                'id': d.id,
-                'name': d.name,
-                'ipv4': d.ipv4,
-                'ipv6': d.ipv6,
-                'mac': d.mac,
-                'vendor': d.vendor,
-                'model': d.model,
-                'version': d.version,
-                'is_online': d.is_online,
-                'avg_ping': d.avg_ping
-            }
-            for d in devices]
-    return content
+
 
 @login_required
 def delete_device():

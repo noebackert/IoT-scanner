@@ -74,9 +74,10 @@
                                         Edit
                                     </button>
                                 {% endif %}
-                                <button type="button" class="btn btn-danger" data-device-id="{{ device['mac'] }}">
-                                    Delete
-                                </button>
+                                <a href="{{ url_for('blueprint.delete_device', device_id=device['mac']) }}">
+                                    <button class="btn btn-danger">Delete</button>
+                                </a>
+
                             </td>
                             <td>{{ device['name'] if device['name']!=None else "No name"}}</td>
                             <td>{{ device['ipv4'] }}</td>
