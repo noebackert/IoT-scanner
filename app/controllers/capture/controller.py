@@ -1,11 +1,12 @@
 from flask import Flask, redirect, render_template, url_for, jsonify, flash, request
 from flask_login import login_required
-from ...models.capture.forms import CaptureTimeForm, CaptureNumberForm, selectForm
+from ...models.capture.forms import CaptureTimeForm, CaptureNumberForm, selectForm, CapturePlayForm
 from ...models.logging_config import setup_logging
 from ...models.sql import Device, Capture, Monitoring, db
 from datetime import datetime
 from ...utils import update_avg_ping, update_content, with_app_context
 from scapy.all import sniff, wrpcap
+from .sniffer import Sniffer
 import os
 
 logger = setup_logging()
@@ -17,12 +18,16 @@ def capture():
     Login is required to view this page.
     """
     devices = Device.query.all()
+    joined_logs = db.session.query(Capture, Device).join(Device).all()
     content = {
         'timeCaptureForm': CaptureTimeForm(),
         'numberCaptureForm': CaptureNumberForm(),
         'selectForm': selectForm(),
+        'playCaptureForm': CapturePlayForm(),
+        'liveCaptureStatus': "Stop",
         'devices': [d for d in devices],
-        'selected_devices': [d for d in devices if d.selected]
+        'selected_devices': [d for d in devices if d.selected],
+        'logs': joined_logs
         }
     content = update_content(content)
     if content['selectForm'].validate_on_submit():
@@ -61,7 +66,11 @@ def capture():
             get_capture(number=number)
             flash(f"Capture done with {number} packets", 'success')
             return redirect(url_for('blueprint.capture'))
-        
+    if content['playCaptureForm'].validate_on_submit():
+        sniffer = Sniffer()
+        logger.info(f"Play capture")
+        logger.info(f"values: {content['playCaptureForm'].value.data}")
+   
     return render_template(url_for('blueprint.capture') + '.html', content=content)
 
 

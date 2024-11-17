@@ -21,3 +21,6 @@ class CaptureNumberForm(FlaskForm):
     numberSelector = IntegerField('Number', validators=[DataRequired(), NumberRange(min=1, max=1000)])
     submit = SubmitField('Submit')
 
+class CapturePlayForm(FlaskForm):
+    value = StringField('Play', validators=[DataRequired()], default="stop")
+    submit = SubmitField('Play')
