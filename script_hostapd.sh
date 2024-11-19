@@ -1,8 +1,12 @@
 #!/bin/bash
 # Prompt for SSID and Passphrase
-
+read -p  "Open wlan to public without a password? (y/n): " open
 read -p "Enter SSID: " ssid
+if [ "$open" == "y" ]; then
+  passphrase=""
+else
 read -p "Enter Passphrase: " passphrase
+fi
 read -p "Access Point Wireless Interface (e.g., wlan1): " interface
 
 
@@ -61,7 +65,12 @@ sudo systemctl restart networking
 # Step 3: Install and Configure Hostapd
 sudo apt install -y hostapd
 echo "Creating hostapd configuration..."
-sudo bash -c "cat > /etc/hostapd/hostapd.conf <<EOF
+if [ "$open" == "n" ]; then
+  if [ -z "$passphrase" ] || [ ${#passphrase} -lt 8 ] || [ ${#passphrase} -gt 63 ]; then
+    echo "Error: Invalid passphrase. It must be 8-63 characters long."
+    exit 1
+  fi
+  sudo bash -c "cat > /etc/hostapd/hostapd.conf <<EOF
 interface=$interface
 driver=nl80211
 ssid=$ssid
@@ -77,6 +86,22 @@ wpa_key_mgmt=WPA-PSK
 wpa_pairwise=TKIP
 rsn_pairwise=CCMP
 EOF"
+else
+  sudo bash -c "cat > /etc/hostapd/hostapd.conf <<EOF
+interface=$interface
+driver=nl80211
+ssid=$ssid
+hw_mode=g
+channel=7
+wmm_enabled=0
+macaddr_acl=0
+auth_algs=1
+ignore_broadcast_ssid=0
+wpa=0
+EOF"
+fi
+
+
 sudo systemctl unmask hostapd
 sudo systemctl enable hostapd
 

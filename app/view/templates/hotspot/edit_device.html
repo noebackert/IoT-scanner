@@ -62,6 +62,7 @@
                         <th>Model</th>
                         <th>Version</th>
                         <th>Status</th>
+                        <th>Avg Ping</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -83,14 +84,15 @@
 
 
                             </td>
-                            <td>{{ device['name'] if device['name']!=None else "No name"}}</td>
+                            <td>{{ device['name'] if device['name']!= Null else 'No name'}}</td>
                             <td>{{ device['ipv4'] }}</td>
-                            <td>{{ device['ipv6'] if device['ipv6']!=None else "No IPV6"}}</td>
+                            <td>{{ device['ipv6'] if device['name']!=Null else "No IPV6"}}</td>
                             <td>{{ device['mac'] }}</td>
-                            <td>{{ device['vendor'] if device['vendor']!=None else "No vendor"}}</td>
-                            <td>{{ device['model'] if device['model']!=None else "No model"}}</td>
-                            <td>{{ device['version'] if device['version']!=None else "No version"}}</td>
-                            <td>{{ device['is_online'] }}</td>
+                            <td>{{ device['vendor'] if device['name']!=Null else "No vendor"}}</td>
+                            <td>{{ device['model'] if device['name']!=Null else "No model"}}</td>
+                            <td>{{ device['version'] if device['name']!=Null else "No version"}}</td>
+                            <td>{{ "Connected" if device['is_online'] else "Disconnected" }}</td>
+                            <td> {{ "{:.2f}".format(device['avg_ping']) ~ ' ms' if device['name']!=Null else "No ping" }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>

@@ -137,6 +137,11 @@ def log():
         logger.info(f"{os.getcwd()}")
         logger.info(f"Selected capture: {capture}")
         packets = rdpcap(log.file_path)
+        for packet in packets:
+            if packet.haslayer('Raw'):
+                raw_data = packet['Raw'].load  # Access raw payload data
+                #print(f"Raw Data: {raw_data}")
+                print(f"payload: {packet.payload}")
 
 
     timestamp_start = float(packets[0].time)
