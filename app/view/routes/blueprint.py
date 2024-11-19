@@ -3,7 +3,7 @@ Configures the address paths (URL routes)
 """
 from flask import Blueprint
 from ...controllers.controller import index, login, register, dashboard, logout, about
-from ...controllers.user_profile.controller import user_profile
+from ...controllers.user_profile.controller import user_profile, modify_password
 from ...controllers.hotspot.controller import hotspot, edit_device, delete_device
 from ...controllers.capture.controller import capture, log
 
@@ -19,6 +19,7 @@ blueprint.route('/logout', methods=['GET', 'POST'])(logout)
 
 # User Profile
 blueprint.route('/user_profile/user_profile', methods=['GET', 'POST'])(user_profile)
+blueprint.route('/user_profile/modify_password', methods=['GET', 'POST'])(modify_password)
 
 # Hotspot
 blueprint.route('/hotspot/hotspot', methods=['GET', 'POST'])(hotspot)

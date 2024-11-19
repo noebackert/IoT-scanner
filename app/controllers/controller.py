@@ -8,11 +8,29 @@ from flask_bcrypt import Bcrypt
 from ..models.app import PyFlaSQL
 from ..models.sql import db, UserDB
 from ..models.auth import LoginForm, RegisterForm
+from functools import wraps
 
 def get_bcrypt():
     pyflasql_obj = PyFlaSQL()
     bcrypt = Bcrypt(pyflasql_obj.myapp)
     return bcrypt
+
+
+def admin_required(func):
+    """A decorator to check if the user is an admin."""
+    @wraps(func)  # Preserve function metadata
+    def wrapper(*args, **kwargs):
+        if current_user.is_authenticated:
+            if current_user.role == 999:
+                return func(*args, **kwargs)
+            else:
+                flash('You need to be Admin to access this feature', 'error')
+                return redirect(url_for('blueprint.login'))  # Ensure this endpoint exists
+        else:
+            flash('Please log in to access this feature', 'error')
+            return redirect(url_for('blueprint.login'))  # Ensure this endpoint exists
+    return wrapper
+
 
 def index():
     """
@@ -107,6 +125,7 @@ def logout():
     logout_user()
     return redirect(url_for('blueprint.login'))
 
+@admin_required
 def register():
     """
         Handles the logic for /register page
@@ -125,6 +144,6 @@ def register():
         new_user = UserDB(username=form.username.data, password=hashed_password, role=0)
         db.session.add(new_user)
         db.session.commit()
-        flash('Your account has been created! You are now able to log in', 'Success')        
+        flash('The new account has been created! You are now able to log in', 'Success')        
         return redirect(url_for('blueprint.login'))
-    return render_template('register.html', form=form)
+    return render_template('register.html', form=form, username=current_user.username)

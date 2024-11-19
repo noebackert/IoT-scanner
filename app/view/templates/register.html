@@ -3,6 +3,9 @@ This file is part of PyFlaSQL.
 Original author: Noé Backert (noe.backert@gmail.com)
 License: check the LICENSE file.
 -->
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -40,10 +43,10 @@ License: check the LICENSE file.
                 </form>
 
                 <hr>
-                <p class="text-center">Already have an account? <a href="{{ url_for('blueprint.login') }}">Log In</a></p>
             </div>
         </div>
     </div>
 </body>
 
 </html>
+{% endblock %}

@@ -25,8 +25,15 @@ License: check the LICENSE file.
                 {% if messages %}
                     <div class=text-center mb-4>
                     {% for category, message in messages %}
-                    <div class="alert alert-danger" role="alert">
-                        {{ category }}: {{ message }}
+                    {% if category.lower() == "success" %}
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {% elif category.lower() == "error" %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {% endif %}
+                <strong>{{ category }}:</strong> {{ message }}
+                        <button type="button" class="btn-close" data-dismiss="alert" aria-label="Close">
+                          <span aria-hidden="true"></span>
+                        </button>
                     </div>
                     {% endfor %}
                     </div>
@@ -59,7 +66,6 @@ License: check the LICENSE file.
                 </form>
 
                 <hr>
-                <p class="text-center">Don't have an account? <a href="{{ url_for('blueprint.register') }}">Sign Up</a></p>
             </div>
         </div>
     </div>

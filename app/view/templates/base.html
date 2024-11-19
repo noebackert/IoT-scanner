@@ -42,6 +42,10 @@ License: check the LICENSE file.
                                 <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                     <a class="dropdown-item" href="{{url_for('blueprint.user_profile')}}">Profile</a>
                                     <div class="dropdown-divider"></div>
+                                    {% if username=="admin"%}
+                                    <a class="dropdown-item" href="{{url_for('blueprint.register')}}">Register new user</a>
+                                    <div class="dropdown-divider"></div>
+                                    {% endif %}
                                     <a class="dropdown-item" href="{{url_for('blueprint.logout')}}">Logout</a>
                                 </div>
                             </li>
