@@ -6,7 +6,7 @@ from ...models.sql import Device, Capture, Monitoring, db
 from datetime import datetime
 from ...utils import update_avg_ping, update_content, with_app_context
 from scapy.all import sniff, wrpcap, rdpcap, conf
-from .sniffer import Sniffer
+from ...models.sniffer import Sniffer
 import os
 import time
 
@@ -131,12 +131,20 @@ def log():
     devices = Device.query.all()
     selected_log = request.args.get('log_id')
     if selected_log:
-        logger.info(f"Selected log: {selected_log}")
-        log = Capture.query.filter_by(id=selected_log).first()
-        logger.info(f"Capture file: {log.file_path}")
-        logger.info(f"{os.getcwd()}")
-        logger.info(f"Selected capture: {capture}")
-        packets = rdpcap(log.file_path)
+        try:
+            logger.info(f"Selected log: {selected_log}")
+            log = Capture.query.filter_by(id=selected_log).first()
+            logger.info(f"Capture file: {log.file_path}")
+            logger.info(f"{os.getcwd()}")
+            logger.info(f"Selected capture: {capture}")
+            packets = rdpcap(log.file_path)
+        except:
+            logger.error(f"Error during reading capture: {log.file_path}")
+            flash(f"Error during reading capture, file probably didn't exist {log.file_path}", 'error')
+            # update database
+            db.session.delete(log)
+            db.session.commit()
+            return redirect(url_for('blueprint.capture'))
         for packet in packets:
             if packet.haslayer('Raw'):
                 raw_data = packet['Raw'].load  # Access raw payload data

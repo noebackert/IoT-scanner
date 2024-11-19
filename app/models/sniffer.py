@@ -10,13 +10,18 @@ class Sniffer(Thread):
         self.stop_sniffer = Event()
         self.pause_sniffer = Event()  # To control pause/resume
         self.filepath = filepath
+
     def run(self):
-        sniff(
-            iface=self.interface,
-            prn=self.print_to_file,
-            stop_filter=self.should_stop_sniffer,
-            #timeout=1  # Sniff for 1 second, then re-check events
-        )
+        while not self.stop_sniffer.is_set():
+            try:
+                sniff(
+                    iface=self.interface,
+                    prn=self.print_to_file,
+                    stop_filter=self.should_stop_sniffer,
+                    timeout=1  # Sniff for 1 second, then re-check events
+                )
+            except Exception as e:
+                print(f"[!] Sniffer error: {e}")
 
     def join(self, timeout=None):
         self.stop_sniffer.set()

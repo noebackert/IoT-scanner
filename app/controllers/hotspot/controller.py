@@ -28,7 +28,8 @@ def hotspot():
     logger.info(f"Content : {content}")
     if content['form'].validate_on_submit():
         devices = Device.query.all()
-        content = perform_network_scan(content)
+        thread_scan = threading.Thread(target=perform_network_scan, args=(content,))
+        thread_scan.start()
         content = update_content(content)
         render_template(url_for('blueprint.hotspot') + '.html', content=content, username = current_user.username)
     else:
@@ -59,67 +60,70 @@ def perform_network_scan(content):
     """
     Perform a network scan to find devices connected to the hotspot & resend page when finished.
     """
-    target_ip = "192.168.10.50-150"  # defined by the hotspot DHCP range
-    with open("nmap_output.txt", "w") as output_file:
-        subprocess.run(["nmap", "-sn","-PE", target_ip], stdout=output_file)
-    logger.info(f"Running command: nmap -sn {target_ip}")
-    
-    # Perform a network scan to find devices connected to the hotspot
-    with open("nmap_output.txt", "r") as file:
-        lines = file.readlines()
-        ipv4 = None
-        ipv6 = None
-        mac = None
-        vendor = None
+    from app import pyflasql_obj
 
-        for line in lines:
-            logger.info(f"Nmap return: {line}")
-            if "Nmap scan report for" in line:
-                # If there is a valid IP address
-                ipv4 = line.split(" ")[-1].strip()
-            
-            if "MAC Address:" in line:
-                # Ensure that the MAC Address and Vendor are correctly parsed
-                try:
-                    mac = line.split(" ")[2].strip()
-                    vendor = line.split("(")[1].split(")")[0].strip()  # Sometimes vendor info might be missing
-                except IndexError:
-                    mac = None
-                    vendor = "Unknown"
-                    # Handle case where the vendor might be missing or in an unexpected format
-                    logger.warning(f"Could not parse MAC address or vendor for IP: {ipv4}")
+    with pyflasql_obj.myapp.app_context():
+        target_ip = "192.168.10.50-150"  # defined by the hotspot DHCP range
+        with open("nmap_output.txt", "w") as output_file:
+            subprocess.run(["nmap", "-sn","-PE", target_ip], stdout=output_file)
+        logger.info(f"Running command: nmap -sn {target_ip}")
+        
+        # Perform a network scan to find devices connected to the hotspot
+        with open("nmap_output.txt", "r") as file:
+            lines = file.readlines()
+            ipv4 = None
+            ipv6 = None
+            mac = None
+            vendor = None
+
+            for line in lines:
+                logger.info(f"Nmap return: {line}")
+                if "Nmap scan report for" in line:
+                    # If there is a valid IP address
+                    ipv4 = line.split(" ")[-1].strip()
                 
-                # Perform reverse DNS lookup to get IPv6 address
-                ipv6 = reverse_dns_lookup(ipv4)
+                if "MAC Address:" in line:
+                    # Ensure that the MAC Address and Vendor are correctly parsed
+                    try:
+                        mac = line.split(" ")[2].strip()
+                        vendor = line.split("(")[1].split(")")[0].strip()  # Sometimes vendor info might be missing
+                    except IndexError:
+                        mac = None
+                        vendor = "Unknown"
+                        # Handle case where the vendor might be missing or in an unexpected format
+                        logger.warning(f"Could not parse MAC address or vendor for IP: {ipv4}")
+                    
+                    # Perform reverse DNS lookup to get IPv6 address
+                    ipv6 = reverse_dns_lookup(ipv4)
 
-                # Append device info including IPv6 if found
-                logger.info(f"Found device: {ipv4} {mac} {vendor} {ipv6 if ipv6 else 'No IPv6 found'}")
+                    # Append device info including IPv6 if found
+                    logger.info(f"Found device: {ipv4} {mac} {vendor} {ipv6 if ipv6 else 'No IPv6 found'}")
 
-                # Check if device already exists in the database
-                device = Device.query.filter_by(mac=mac).first()
-                if not device:  # new device
-                    new_device = Device(ipv4=ipv4, mac=mac, vendor=vendor, ipv6=ipv6)
-                    db.session.add(new_device)
-                    db.session.commit()
-                    logger.info(f"Device {mac} added to the database")
-                    # Monitor the device connection
-                    thread = threading.Thread(target=monitor_ping_device, args=(new_device,))
-                    thread.start()
-
-                else: # device already exists
-                    logger.info(f"Device {mac} already exists in the database")
-                    # Check if IP address has changed
-                    if not device.is_online:
-                        device.is_online = True
-                        thread = threading.Thread(target=monitor_ping_device, args=(device,))
+                    # Check if device already exists in the database
+                    device = Device.query.filter_by(mac=mac).first()
+                    if not device:  # new device
+                        new_device = Device(ipv4=ipv4, mac=mac, vendor=vendor, ipv6=ipv6)
+                        db.session.add(new_device)
+                        db.session.commit()
+                        logger.info(f"Device {mac} added to the database")
+                        # Monitor the device connection
+                        thread = threading.Thread(target=monitor_ping_device, args=(new_device,))
                         thread.start()
-                    if device.ipv4 != ipv4:
-                        device.ipv4 = ipv4
-                    if device.ipv6 != ipv6:
-                        device.ipv6 = ipv6
-                    db.session.commit()
-                    logger.info(f"Device {mac} IP address updated to {ipv4} and IPv6 updated to {ipv6 if ipv6 else 'No IPv6'}")
-    return content
+
+                    else: # device already exists
+                        logger.info(f"Device {mac} already exists in the database")
+                        # Check if IP address has changed
+                        if not device.is_online:
+                            device.is_online = True
+                            thread = threading.Thread(target=monitor_ping_device, args=(device,))
+                            thread.start()
+                        if device.ipv4 != ipv4:
+                            device.ipv4 = ipv4
+                        if device.ipv6 != ipv6:
+                            device.ipv6 = ipv6
+                        db.session.commit()
+                        logger.info(f"Device {mac} IP address updated to {ipv4} and IPv6 updated to {ipv6 if ipv6 else 'No IPv6'}")
+        return content
 
 
 

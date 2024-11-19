@@ -63,38 +63,12 @@ def login():
         if user:
             if bcrypt.check_password_hash(user.password, form.password.data):
                 login_user(user, remember=remember_me)
-                return redirect(url_for('blueprint.dashboard'))
+                return redirect(url_for('blueprint.hotspot'))
         flash('Login or password incorrect!', 'Error')
     return render_template('login.html', form=form)
 
 
 
-@login_required
-def dashboard():
-    """
-        Handles the logic for /dashboard page
-        Login is required to view this page.
-
-        Args:
-            - None.
-
-        Returns:
-            - rendered dashboard.html template
-        """
-    username = current_user.username
-    user_role = current_user.role
-    
-    # Render different templates based on the role
-    if user_role == 999:
-        return render_template('dashboard_admin.html', username=username)
-    elif user_role == 1:
-        return render_template('dashboard_user.html', username=username)
-    elif user_role == 0:
-        return render_template('dashboard_guest.html', username=username)
-    else:
-        # Handle unexpected roles or redirect to an error page
-        return redirect(url_for('error_page'))
-    
 @login_required
 def about():
     """
