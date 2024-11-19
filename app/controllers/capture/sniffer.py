@@ -15,7 +15,7 @@ class Sniffer(Thread):
             iface=self.interface,
             prn=self.print_to_file,
             stop_filter=self.should_stop_sniffer,
-            timeout=1  # Sniff for 1 second, then re-check events
+            #timeout=1  # Sniff for 1 second, then re-check events
         )
 
     def join(self, timeout=None):
