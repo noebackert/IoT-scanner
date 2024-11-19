@@ -1,6 +1,6 @@
 PING 192.168.10.140 (192.168.10.140) 56(84) bytes of data.
-64 bytes from 192.168.10.140: icmp_seq=1 ttl=64 time=142 ms
+64 bytes from 192.168.10.140: icmp_seq=1 ttl=64 time=309 ms
 
 --- 192.168.10.140 ping statistics ---
 1 packets transmitted, 1 received, 0% packet loss, time 0ms
-rtt min/avg/max/mdev = 141.696/141.696/141.696/0.000 ms
+rtt min/avg/max/mdev = 308.848/308.848/308.848/0.000 ms

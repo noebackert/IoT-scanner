@@ -195,6 +195,7 @@ def delete_device():
     return redirect(url_for('blueprint.hotspot'))
 
 def single_ping_check(device:Device):
+    from app import pyflasql_obj
     """
     Check if the device is online by pinging it.
     """
@@ -204,10 +205,11 @@ def single_ping_check(device:Device):
     is_online = response.returncode == 0
     ping = get_ping_from_file(file_name)
     device.is_online = is_online
-    new_ping = Monitoring(device_id=device.id, ip=device.ipv4, ping=ping, date=datetime.now())
-    db.session.add(new_ping)
-    update_avg_ping()
-    db.session.commit()
+    with pyflasql_obj.myapp.app_context():
+        new_ping = Monitoring(device_id=device.id, ip=device.ipv4, ping=ping, date=datetime.now())
+        db.session.add(new_ping)
+        update_avg_ping()
+        db.session.commit()
     logger.info(f"Ping: Device {device.ipv4} is {'online' if is_online else 'offline'}")
     return is_online
 
