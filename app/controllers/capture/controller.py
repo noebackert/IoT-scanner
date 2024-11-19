@@ -112,8 +112,22 @@ def log():
     protocols = {
         1: "ICMP",
         6: "TCP",
-        17: "UDP",
+        17: "UDP/QUIC",
+
     }
+    ether_type = {
+        0x0800: "IPv4",
+        0x0806: "ARP",
+        0x86DD: "IPv6",
+        0x8847: "MPLS unicast",
+        0x8848: "MPLS multicast",
+        0x8100: "VLAN",
+        0x8843: "PPP",
+        0x8844: "PPP Discovery",
+        0x9000: "Proprietary Protocol",
+    }   
+
+
     devices = Device.query.all()
     selected_log = request.args.get('log_id')
     if selected_log:
@@ -124,31 +138,18 @@ def log():
         logger.info(f"Selected capture: {capture}")
         packets = rdpcap(log.file_path)
 
-    logger.info(f"Number of packets: {len(packets)}")
-    logger.info(f"First packet: {packets[0]}")
-    logger.info(f"Last packet: {packets[-1]}")
-    logger.info(f"Time: {packets[0].time}")
-    logger.info(f"Src IP: {packets[0]['IP'].src}")
-    logger.info(f"Dst IP: {packets[0]['IP'].dst}")
-    logger.info(f"Src Port: {packets[0]['ICMP']}")
-    logger.info(f"Dst Port: {packets[0]['ICMP']}")
-    logger.info(f"Protocol: {packets[0]['IP'].proto}")
-    logger.info(f"Protocol name: {protocols[packets[0]['IP'].proto]}")
-    
 
     timestamp_start = float(packets[0].time)
     timestamp_end = float(packets[-1].time)
     duration = timestamp_end - timestamp_start
-    logger.info(f"Duration: {duration*1000:.2f} ms")
 
-    for packet in packets:
-        logger.info(packet.time)
     content = {
         'devices': [d for d in devices],
         'log': log,
         'packets' : packets,
         'duration': duration,
         'protocols': protocols,
+        'ether_type': ether_type,
     }
     content = update_content(content)
 

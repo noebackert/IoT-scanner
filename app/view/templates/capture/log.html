@@ -44,6 +44,7 @@
                     <th>Dest IP</th>
                     <th>Src Port</th>
                     <th>Dest Port</th>
+                    <th>Ethernet</th>
                     <th>Protocol</th>
                 </tr>
             </thead>
@@ -51,27 +52,23 @@
                 {% for packet in content["packets"] %}
                 <tr>
                     <tr>
+                        
                         <td>{{ loop.index }}</td> <!-- Packet number (loop.index) -->
                         <td>{{ packet.time - content["packets"][0].time }}</td> <!-- Time -->
-                        <td>{{ packet['IP'].src }}</td> <!-- Source IP -->
-                        <td>{{ packet['IP'].dst }}</td>
+                        <td>{% if packet.haslayer('IP') %}{{ packet['IP'].src }}{% else %}None{% endif %}</td> <!-- Source IP -->
+                        <td>{% if packet.haslayer('IP') %}{{ packet['IP'].dst }}{% else %}None{% endif %}</td> <!-- Source IP -->
                         {% if packet.haslayer('TCP') %}
-                            <td>{{ packet['TCP'].sport }}</td> <!-- Source Port (TCP) -->
-                            <td>{{ packet['TCP'].dport }}</td> <!-- Destination Port (TCP) -->
-                            <td>TCP</td> <!-- Protocol (TCP) -->
+                        <td>{{ packet['TCP'].sport }}</td> <!-- Source Port -->
+                        <td>{{ packet['TCP'].dport }}</td> <!-- Destination Port -->
                         {% elif packet.haslayer('UDP') %}
-                            <td>{{ packet['UDP'].sport }}</td> <!-- Source Port (UDP) -->
-                            <td>{{ packet['UDP'].dport }}</td> <!-- Destination Port (UDP) -->
-                            {% if packet['UDP'].dport == 443 or packet['UDP'].sport == 443 %}
-                                <td>QUIC</td> <!-- Protocol (QUIC) -->
-                            {% else %}
-                                <td>UDP</td> <!-- Protocol (UDP) -->
-                            {% endif %}
+                        <td>{{ packet['UDP'].sport }}</td> <!-- Source Port -->
+                        <td>{{ packet['UDP'].dport }}</td> <!-- Destination Port -->
                         {% else %}
-                            <td>None</td> <!-- Source Port (None) -->
-                            <td>None</td> <!-- Destination Port (None) -->
-                            <td>{{ content["protocols"][packet[0]['IP'].proto] }}</td> <!-- Protocol (Other) -->
+                        <td>None</td>
+                        <td>None</td>
                         {% endif %}
+                        <td>{{ content["ether_type"][packet['Ether'].type] }}</td> <!-- Ethernet -->
+                        <td>{% if packet.haslayer('IP')%} {{ content["protocols"][packet['IP'].proto] }} {% else %}  None {% endif %}</td> <!-- Protocol -->
                     </tr>
                     
                 </tr>

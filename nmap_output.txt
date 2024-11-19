@@ -1,5 +1,2 @@
-Starting Nmap 7.93 ( https://nmap.org ) at 2024-11-19 04:03 UTC
-Nmap scan report for 192.168.10.94
-Host is up.
-MAC Address: 58:24:29:E3:33:58 (Google)
-Nmap done: 101 IP addresses (1 host up) scanned in 4.32 seconds
+Starting Nmap 7.93 ( https://nmap.org ) at 2024-11-19 06:30 UTC
+Nmap done: 101 IP addresses (0 hosts up) scanned in 4.67 seconds

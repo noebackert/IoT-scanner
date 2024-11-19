@@ -1,6 +1,6 @@
-PING 192.168.10.145 (192.168.10.145) 56(84) bytes of data.
-From 192.168.10.1 icmp_seq=1 Destination Host Unreachable
+PING 192.168.10.94 (192.168.10.94) 56(84) bytes of data.
+64 bytes from 192.168.10.94: icmp_seq=1 ttl=64 time=58.2 ms
 
---- 192.168.10.145 ping statistics ---
-1 packets transmitted, 0 received, +1 errors, 100% packet loss, time 0ms
-
+--- 192.168.10.94 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 58.200/58.200/58.200/0.000 ms
