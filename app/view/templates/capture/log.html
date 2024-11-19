@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Log {% endblock %}
+{% block content %}
+
+<div class="container p-5 ">
+    <!-- Main Title -->
+    <h1 class="text-center">Global details of the log</h1>
+    <div class="container p-5 my-5 border bg-light">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Filepath</th>
+                    <th>Time of start</th>
+                    <th>Duration</th>
+                    <th>Number of packets</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ content["log"].id}}</td>
+                    <td>{{ content["log"].file_path }}</td>
+                    <td>{{ content["log"].date }}</td>
+                    <td>{{ "{:.2f}".format(content["duration"]*1000) ~ " ms" }}</td>
+                    <td>{{ content["packets"] | length }}</td>
+                </tr>
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+
+<div class="container">
+    <!-- Main Title -->
+    <h1 class="text-center">Capture Log</h1>
+    <div class="container p-5 my-5 border bg-light">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Packet</th>
+                    <th>Time (s)</th>
+                    <th>Src IP</th>
+                    <th>Dest IP</th>
+                    <th>Src Port</th>
+                    <th>Dest Port</th>
+                    <th>Protocol</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for packet in content["packets"] %}
+                <tr>
+                    <tr>
+                        <td>{{ loop.index }}</td> <!-- Packet number (loop.index) -->
+                        <td>{{ packet.time - content["packets"][0].time }}</td> <!-- Time -->
+                        <td>{{ packet['IP'].src }}</td> <!-- Source IP -->
+                        <td>{{ packet['IP'].dst }}</td>
+                        {% if packet.haslayer('TCP') %}
+                            <td>{{ packet['TCP'].sport }}</td> <!-- Source Port (TCP) -->
+                            <td>{{ packet['TCP'].dport }}</td> <!-- Destination Port (TCP) -->
+                            <td>TCP</td> <!-- Protocol (TCP) -->
+                        {% elif packet.haslayer('UDP') %}
+                            <td>{{ packet['UDP'].sport }}</td> <!-- Source Port (UDP) -->
+                            <td>{{ packet['UDP'].dport }}</td> <!-- Destination Port (UDP) -->
+                            {% if packet['UDP'].dport == 443 or packet['UDP'].sport == 443 %}
+                                <td>QUIC</td> <!-- Protocol (QUIC) -->
+                            {% else %}
+                                <td>UDP</td> <!-- Protocol (UDP) -->
+                            {% endif %}
+                        {% else %}
+                            <td>None</td> <!-- Source Port (None) -->
+                            <td>None</td> <!-- Destination Port (None) -->
+                            <td>{{ content["protocols"][packet[0]['IP'].proto] }}</td> <!-- Protocol (Other) -->
+                        {% endif %}
+                    </tr>
+                    
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+
+{% endblock %}
+

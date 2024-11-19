@@ -5,11 +5,13 @@ from ...models.logging_config import setup_logging
 from ...models.sql import Device, Capture, Monitoring, db
 from datetime import datetime
 from ...utils import update_avg_ping, update_content, with_app_context
-from scapy.all import sniff, wrpcap
+from scapy.all import sniff, wrpcap, rdpcap, conf
 from .sniffer import Sniffer
 import os
+import time
 
 logger = setup_logging()
+sniffer = None
 
 @login_required
 def capture():
@@ -17,6 +19,7 @@ def capture():
     Control the capture page.
     Login is required to view this page.
     """
+    global sniffer
     devices = Device.query.all()
     joined_logs = db.session.query(Capture, Device).join(Device).all()
     content = {
@@ -24,10 +27,10 @@ def capture():
         'numberCaptureForm': CaptureNumberForm(),
         'selectForm': selectForm(),
         'playCaptureForm': CapturePlayForm(),
-        'liveCaptureStatus': "Stop",
         'devices': [d for d in devices],
         'selected_devices': [d for d in devices if d.selected],
-        'logs': joined_logs
+        'logs': joined_logs,
+        'capture': "stop"
         }
     content = update_content(content)
     if content['selectForm'].validate_on_submit():
@@ -67,11 +70,89 @@ def capture():
             flash(f"Capture done with {number} packets", 'success')
             return redirect(url_for('blueprint.capture'))
     if content['playCaptureForm'].validate_on_submit():
-        sniffer = Sniffer()
-        logger.info(f"Play capture")
-        logger.info(f"values: {content['playCaptureForm'].value.data}")
-   
+        logger.info(f"Capture action: {content['playCaptureForm'].value.data}")
+        if content['playCaptureForm'].value.data == "play":
+            content['capture']="play"
+            time=datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+            if content['selected_devices']:
+                logger.info(f"Capture devices: {content['selected_devices']}")
+                hosts_str="_".join([str(d.id) for d in content['selected_devices']])
+            else:
+                logger.info(f"Capture all devices")
+                hosts_str="all"
+            filename=f"app/static/capture/{hosts_str}_{time}.pcap"
+            sniffer = Sniffer(interface=os.getenv('INTERFACE', 'wlan1'), filepath=filename)
+            sniffer.start()
+            logger.info("Capture started")
+        if content['playCaptureForm'].value.data == "pause":
+            content['capture']="pause"
+            sniffer.pause()
+            logger.info("Capture paused")
+        if content['playCaptureForm'].value.data == "resume":
+            content['capture']="play"
+            sniffer.resume()
+            logger.info("Capture resumed")
+        if content['playCaptureForm'].value.data == "stop":
+            content['capture']="stop"
+            sniffer.stop()
+            if content['selected_devices']:
+                save_capture(content['selected_devices'][0].id, sniffer.filepath)
+            else:
+                save_capture(1, sniffer.filepath)
+            content = update_content(content)
+            logger.info("Capture stopped")   
+        logger.info(f"Capture status: {content['capture']}")
+        return render_template(url_for('blueprint.capture') + '.html', content=content)
     return render_template(url_for('blueprint.capture') + '.html', content=content)
+
+
+@login_required
+def log():
+    """ Control the capture logs page. """
+    protocols = {
+        1: "ICMP",
+        6: "TCP",
+        17: "UDP",
+    }
+    devices = Device.query.all()
+    selected_log = request.args.get('log_id')
+    if selected_log:
+        logger.info(f"Selected log: {selected_log}")
+        log = Capture.query.filter_by(id=selected_log).first()
+        logger.info(f"Capture file: {log.file_path}")
+        logger.info(f"{os.getcwd()}")
+        logger.info(f"Selected capture: {capture}")
+        packets = rdpcap(log.file_path)
+
+    logger.info(f"Number of packets: {len(packets)}")
+    logger.info(f"First packet: {packets[0]}")
+    logger.info(f"Last packet: {packets[-1]}")
+    logger.info(f"Time: {packets[0].time}")
+    logger.info(f"Src IP: {packets[0]['IP'].src}")
+    logger.info(f"Dst IP: {packets[0]['IP'].dst}")
+    logger.info(f"Src Port: {packets[0]['ICMP']}")
+    logger.info(f"Dst Port: {packets[0]['ICMP']}")
+    logger.info(f"Protocol: {packets[0]['IP'].proto}")
+    logger.info(f"Protocol name: {protocols[packets[0]['IP'].proto]}")
+    
+
+    timestamp_start = float(packets[0].time)
+    timestamp_end = float(packets[-1].time)
+    duration = timestamp_end - timestamp_start
+    logger.info(f"Duration: {duration*1000:.2f} ms")
+
+    for packet in packets:
+        logger.info(packet.time)
+    content = {
+        'devices': [d for d in devices],
+        'log': log,
+        'packets' : packets,
+        'duration': duration,
+        'protocols': protocols,
+    }
+    content = update_content(content)
+
+    return render_template(url_for('blueprint.log') + '.html', content=content)
 
 
 def get_capture(time:int=None, number:int=None, list_device:list[Device]=None)->bool:

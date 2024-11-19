@@ -3,7 +3,7 @@ from flask_login import login_required
 from ...models.hotspot.forms import HotspotForm, EditDeviceForm
 from ...models.logging_config import setup_logging
 from scapy.all import ARP, Ether, srp
-from ...models.sql import Device, Monitoring, db
+from ...models.sql import Device, Monitoring, Capture, db
 import subprocess
 import threading
 import time
@@ -19,7 +19,8 @@ def hotspot():
     Control the hotspot page.
     Login is required to view this page.
     """
-    devices = Device.query.all()
+    # Get all devices from the database ordered by IP address
+    devices = Device.query.order_by(Device.ipv4).all()
     content = {
         'form': HotspotForm(),
         'devices': [d for d in devices],
@@ -33,6 +34,12 @@ def hotspot():
     else:
         content = update_content(content)
         logger.info("Scan status is True")
+    for device in content['devices']:
+        if not ping_check(device):
+            device.is_online = False
+            device.avg_ping = 9999
+            db.session.commit()
+            logger.info(f"Device {device.ipv4} is offline")
     return render_template(url_for('blueprint.hotspot') + '.html', content=content)
 
     
@@ -215,9 +222,24 @@ def delete_device():
             db.session.delete(monitor)
             db.session.commit()
             logger.info(f"Monitor deleted: {monitor}")
+        captureToDelete = Capture.query.filter_by(device_id=selected_device.id).all()
+        for capture in captureToDelete:
+            db.session.delete(capture)
+            db.session.commit()
+            logger.info(f"Capture deleted: {capture}")
         db.session.delete(selected_device)
         db.session.commit()
         flash("Device deleted successfully!", "success")
     else:
         flash("Device not found in the database", "danger")
     return redirect(url_for('blueprint.hotspot'))
+
+def ping_check(device:Device):
+    """
+    Check if the device is online by pinging it.
+    """
+    with open('ping_output.txt', 'w') as output_file:
+        response = subprocess.run(["ping", "-c", "1", device.ipv4], stdout=output_file)
+    is_online = response.returncode == 0
+    logger.info(f"Ping: Device {device.ipv4} is {'online' if is_online else 'offline'}")
+    return is_online

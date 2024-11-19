@@ -1,6 +1,11 @@
 from flask import current_app
-from app.models.sql import Device, Monitoring, db
+from app.models.sql import Device, Monitoring, Capture, db
+import subprocess
+from .models.logging_config import setup_logging
+from sqlalchemy import cast, String
+from sqlalchemy.dialects.postgresql import INET
 
+logger = setup_logging()
 
 def with_app_context(func):
     """A decorator to push the Flask app context to threaded functions."""
@@ -34,7 +39,18 @@ def update_content(content):
     """
     Update the content of the pages.
     """
-    devices = Device.query.all()
+    devices = Device.query.order_by(cast(Device.ipv4, INET)).all()
     content['devices'] = [d for d in devices]
+    content['logs'] = db.session.query(Capture, Device).join(Device).all()
     content['selected_devices'] = [d for d in devices if d.selected]
     return content
+
+def ping_check(device:Device):
+    """
+    Check if the device is online by pinging it.
+    """
+    with open('ping_output.txt', 'w') as output_file:
+        response = subprocess.run(["ping", "-c", "1", device.ipv4], stdout=output_file)
+    is_online = response.returncode == 0
+    logger.info(f"Ping: Device {device.ipv4} is {'online' if is_online else 'offline'}")
+    return is_online

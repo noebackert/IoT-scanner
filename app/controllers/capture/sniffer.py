@@ -14,7 +14,8 @@ class Sniffer(Thread):
         sniff(
             iface=self.interface,
             prn=self.print_to_file,
-            stop_filter=self.should_stop_sniffer
+            stop_filter=self.should_stop_sniffer,
+            timeout=1  # Sniff for 1 second, then re-check events
         )
 
     def join(self, timeout=None):
@@ -39,3 +40,7 @@ class Sniffer(Thread):
 
     def stop(self):
         self.stop_sniffer.set()  # Stops sniffing
+
+    def set_path(self, path):
+        self.filepath = path
+        print(f"[!] New Path: {path}")
