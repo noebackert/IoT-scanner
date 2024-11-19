@@ -2,8 +2,13 @@
 {% block title %}Capture{% endblock %}
 {% block content %}
 
-<!-- refresh the page every 10 sec -->
-<meta http-equiv="refresh" content="10">
+<head>
+    <!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
+</head>
 <div class="container p-5 my-5">
     <!-- Main Title -->
     <h1 class="text-center">Capture</h1>
@@ -25,29 +30,105 @@
 
 
         </p>
-        <div class="d-flex justify-content-between">
-            <!-- First form -->
-            <form method="POST" action="" class="w-50 me-2">
-                {{ content['timeCaptureForm'].hidden_tag() }}
-                <div class="form-group mt-2">
-                    <label for="time">Capture time (in seconds):</label>
-                    {{ content['timeCaptureForm'].timeSelector(class="form-control", id="time", placeholder="Enter time in seconds") }}
-                    <button type="submit" class="btn btn-primary mt-3">Capture</button>
+        <div class="container mt-4">
+            <div class="row g-4">
+                <!-- First Form -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <form method="POST" action="">
+                                {{ content['timeCaptureForm'].hidden_tag() }}
+                                <div class="form-group mb-3">
+                                    <label for="time" class="form-label">Capture time (in seconds):</label>
+                                    {{ content['timeCaptureForm'].timeSelector(class="form-control", id="time", placeholder="Enter time in seconds") }}
+                                </div>
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-camera-fill me-2"></i>Capture
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-            </form>
-    
-            <!-- Second form -->
-            <form method="POST" action="" class="w-50 ms-2">
-                {{ content['numberCaptureForm'].hidden_tag() }}
-                <div class="form-group mt-2">
-                    <label for="number">Number of packets:</label>
-                    {{ content['numberCaptureForm'].numberSelector(class="form-control", id="number", placeholder="Enter number of packets") }}
-                    <button type="submit" class="btn btn-primary mt-3">Capture</button>
+        
+                <!-- Second Form -->
+                <div class="col-md-6">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <form method="POST" action="">
+                                {{ content['numberCaptureForm'].hidden_tag() }}
+                                <div class="form-group mb-3">
+                                    <label for="number" class="form-label">Number of packets:</label>
+                                    {{ content['numberCaptureForm'].numberSelector(class="form-control", id="number", placeholder="Enter number of packets") }}
+                                </div>
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-camera-fill me-2"></i>Capture
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-            </form>
+            </div>
         </div>
-    </div>
-    
+        
+        <div class="mt-4 p-3 border rounded bg-light shadow-sm">
+            <!-- Section Title -->
+            <h5 class="mb-3 text-center">Live Capture Controls</h5>
+        
+            <!-- Buttons aligned side-by-side -->
+            <div class="d-flex justify-content-center align-items-center gap-4">
+                <!-- Capture Form -->
+
+                {% if content["capture"]=="stop" %}
+                <form method="POST" action="" class="mb-0">
+                    {{ content['playCaptureForm'].hidden_tag() }}
+                    <input type="hidden" name="value" value="play">
+                    <button type="submit" class="btn btn-success d-flex align-items-center px-4 py-2">
+                        <i class="bi bi-play-fill me-2"></i> Capture
+                    </button>
+                </form>
+                 {% elif content["capture"]=="pause" %}
+                <form method="POST" action="" class="mb-0">
+                    {{ content['playCaptureForm'].hidden_tag() }}
+                    <input type="hidden" name="value" value="resume">
+                    <button type="submit" class="btn btn-info d-flex align-items-center px-4 py-2">
+                        <i class="bi bi-play-fill me-2"></i> Resume
+                    </button>                    
+                </form>
+
+                <form method="POST" action="" class="mb-0">
+                    {{ content['playCaptureForm'].hidden_tag() }}
+                    <input type="hidden" name="value" value="stop">
+                    <button type="submit" class="btn btn-danger d-flex align-items-center px-4 py-2">
+                        <i class="bi bi-stop-fill me-2"></i> Stop
+                    </button>
+                </form>
+                {% elif content["capture"]=="play" %}
+               
+                <form method="POST" action="" class="mb-0">
+                    {{ content['playCaptureForm'].hidden_tag() }}
+                    <input type="hidden" name="value" value="pause">
+                    <button type="submit" class="btn btn-warning d-flex align-items-center px-4 py-2">
+                        <i class="bi bi-pause-fill me-2"></i> Pause
+                    </button>
+                </form>
+
+                <form method="POST" action="" class="mb-0">
+                    {{ content['playCaptureForm'].hidden_tag() }}
+                    <input type="hidden" name="value" value="stop">
+                    <button type="submit" class="btn btn-danger d-flex align-items-center px-4 py-2">
+                        <i class="bi bi-stop-fill me-2"></i> Stop
+                    </button>
+                </form>
+                {% endif %}
+
+            </div>
+        </div>
+        
+        
 
     <h3 class="mt-5 text-center">Connected Devices:</h3>
 
@@ -109,6 +190,41 @@
                 No devices found.
             {% endif %}
         </p>
+    </div>
+
+
+    <h3 class="mt-5 text-center">Scan Logs:</h3>
+
+    <div class="container p-5 my-5 border bg-light">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Device name</th>
+                    <th>IPv4</th>
+                    <th>Filepath</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if content["logs"] %}
+                    {% for log in content["logs"] %}
+                        <tr>
+                            <td>{{ log.Capture.id}}</td>
+                            <td>{{ log.Capture.date }}</td>
+                            <td>{{ log.Device.name }}</td>
+                            <td>{{ log.Device.ipv4 }}</td>
+                            <!-- if user click on log file_path, redirect to the page capture_logs with the specified log data -->
+                            <td><a href="{{ url_for('blueprint.log', log_id=log.Capture.id) }}">{{ log.Capture.file_path }}</a></td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="9">No logs found.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
     </div>
 </div>
 
