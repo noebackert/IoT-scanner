@@ -1,5 +1,5 @@
 from flask import Flask, redirect, render_template, url_for, jsonify, flash, request
-from flask_login import login_required
+from flask_login import login_required, current_user
 from ...models.hotspot.forms import HotspotForm, EditDeviceForm
 from ...models.logging_config import setup_logging
 from scapy.all import ARP, Ether, srp
@@ -30,17 +30,17 @@ def hotspot():
         devices = Device.query.all()
         content = perform_network_scan(content)
         content = update_content(content)
-        render_template(url_for('blueprint.hotspot') + '.html', content=content)
+        render_template(url_for('blueprint.hotspot') + '.html', content=content, username = current_user.username)
     else:
         content = update_content(content)
         logger.info("Scan status is True")
     for device in content['devices']:
-        if not ping_check(device):
+        if not single_ping_check(device):
             device.is_online = False
             device.avg_ping = 9999
             db.session.commit()
             logger.info(f"Device {device.ipv4} is offline")
-    return render_template(url_for('blueprint.hotspot') + '.html', content=content)
+    return render_template(url_for('blueprint.hotspot') + '.html', content=content, username = current_user.username)
 
     
 
@@ -82,7 +82,7 @@ def perform_network_scan(content):
                 # Ensure that the MAC Address and Vendor are correctly parsed
                 try:
                     mac = line.split(" ")[2].strip()
-                    vendor = line.split(" ")[3].strip()  # Sometimes vendor info might be missing
+                    vendor = line.split("(")[1].split(")")[0].strip()  # Sometimes vendor info might be missing
                 except IndexError:
                     mac = None
                     vendor = "Unknown"
@@ -97,22 +97,21 @@ def perform_network_scan(content):
 
                 # Check if device already exists in the database
                 device = Device.query.filter_by(mac=mac).first()
-                if not device:
-                    # Add the device to the database
+                if not device:  # new device
                     new_device = Device(ipv4=ipv4, mac=mac, vendor=vendor, ipv6=ipv6)
                     db.session.add(new_device)
                     db.session.commit()
                     logger.info(f"Device {mac} added to the database")
                     # Monitor the device connection
-                    thread = threading.Thread(target=monitor_device_connection, args=(new_device,))
+                    thread = threading.Thread(target=monitor_ping_device, args=(new_device,))
                     thread.start()
 
-                else:
+                else: # device already exists
                     logger.info(f"Device {mac} already exists in the database")
                     # Check if IP address has changed
                     if not device.is_online:
                         device.is_online = True
-                        thread = threading.Thread(target=monitor_device_connection, args=(new_device,))
+                        thread = threading.Thread(target=monitor_ping_device, args=(device,))
                         thread.start()
                     if device.ipv4 != ipv4:
                         device.ipv4 = ipv4
@@ -122,45 +121,6 @@ def perform_network_scan(content):
                     logger.info(f"Device {mac} IP address updated to {ipv4} and IPv6 updated to {ipv6 if ipv6 else 'No IPv6'}")
     return content
 
-
-def monitor_device_connection(device):
-    from app import pyflasql_obj
-
-    # Ensure the app context is available in the background thread
-    with pyflasql_obj.myapp.app_context():
-        while True:
-            with open('ping_output.txt', 'w') as output_file:
-                response = subprocess.run(["ping", "-c", "1", device.ipv4], stdout=output_file)
-            is_online = response.returncode == 0
-            logger.info(f"Ping: Device {device.ipv4} is {'online' if is_online else 'offline'}")
-            with open('ping_output.txt', 'r') as file:
-                lines = file.readlines()
-                for line in lines:
-                    if "time=" in line:
-                        ping = float(line.split(" ")[6].split("=")[1])
-                        logger.info(f"Ping: {ping} ms")
-                        break
-                else:
-                    ping = 999  # Set to 999 ms if ping fails
-                    is_online = False
-
-            # add the ping to the database
-            new_monitoring = Monitoring(device_id=device.id, ip=device.ipv4, ping=ping, date=datetime.now())
-            logger.info(f"Monitoring: {new_monitoring.date} {new_monitoring.ip} {new_monitoring.ping}")
-            db.session.add(new_monitoring)
-            db.session.commit()
-            update_avg_ping()
-            # Update the device status in the database
-            db_device = Device.query.get(device.id)
-            if db_device:
-                db_device.is_online = is_online
-                db.session.commit()
-            else:
-                break  # Device might have been removed
-            if not is_online:
-                logger.info(f"Device {device.ipv4} is offline. Stopping monitoring")
-                break
-            time.sleep(5)  # Ping every 5 seconds
 
 
 @login_required
@@ -200,7 +160,7 @@ def edit_device():
         else:
             flash("Device not found in the database", "danger")
 
-    return render_template(url_for('blueprint.edit_device') +'.html', content=content)
+    return render_template(url_for('blueprint.edit_device') +'.html', content=content, username = current_user.username)
 
 
 
@@ -234,12 +194,45 @@ def delete_device():
         flash("Device not found in the database", "danger")
     return redirect(url_for('blueprint.hotspot'))
 
-def ping_check(device:Device):
+def single_ping_check(device:Device):
     """
     Check if the device is online by pinging it.
     """
-    with open('ping_output.txt', 'w') as output_file:
+    file_name=f'pings/ping_{device.id}.txt'
+    with open(file_name, 'w') as output_file:
         response = subprocess.run(["ping", "-c", "1", device.ipv4], stdout=output_file)
     is_online = response.returncode == 0
+    ping = get_ping_from_file(file_name)
+    device.is_online = is_online
+    new_ping = Monitoring(device_id=device.id, ip=device.ipv4, ping=ping, date=datetime.now())
+    db.session.add(new_ping)
+    update_avg_ping()
+    db.session.commit()
     logger.info(f"Ping: Device {device.ipv4} is {'online' if is_online else 'offline'}")
     return is_online
+
+def monitor_ping_device(device:Device):
+    """Monitor the connection of a device by pinging it."""
+    while True:
+        is_online = single_ping_check(device)
+        device.is_online = is_online
+        db.session.commit()
+        if not is_online:
+            logger.info(f"Device {device.ipv4} is offline. Stopping monitoring")
+            break
+        time.sleep(5)  # Ping every 5 seconds
+    return is_online
+
+
+def get_ping_from_file(file:str):
+    """
+    Get the ping from the ping output file.
+    """
+    with open(file, 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            if "time=" in line:
+                ping = float(line.split(" ")[6].split("=")[1])
+                logger.info(f"Ping: {ping} ms")
+                return ping
+    return 9999

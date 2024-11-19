@@ -1,2 +1,8 @@
-Starting Nmap 7.93 ( https://nmap.org ) at 2024-11-19 06:30 UTC
-Nmap done: 101 IP addresses (0 hosts up) scanned in 4.67 seconds
+Starting Nmap 7.93 ( https://nmap.org ) at 2024-11-19 08:13 UTC
+Nmap scan report for 192.168.10.94
+Host is up (2.1s latency).
+MAC Address: 58:24:29:E3:33:58 (Google)
+Nmap scan report for 192.168.10.127
+Host is up (5.4s latency).
+MAC Address: 9C:5A:44:DC:81:F8 (Compal Information (kunshan))
+Nmap done: 101 IP addresses (2 hosts up) scanned in 23.83 seconds

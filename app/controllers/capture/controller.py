@@ -1,5 +1,5 @@
 from flask import Flask, redirect, render_template, url_for, jsonify, flash, request
-from flask_login import login_required
+from flask_login import login_required, current_user
 from ...models.capture.forms import CaptureTimeForm, CaptureNumberForm, selectForm, CapturePlayForm
 from ...models.logging_config import setup_logging
 from ...models.sql import Device, Capture, Monitoring, db
@@ -39,13 +39,13 @@ def capture():
             selected_device.selected = True
             content = update_content(content)
             db.session.commit()
-            return render_template(url_for('blueprint.capture') + '.html', content=content)
+            return render_template(url_for('blueprint.capture') + '.html', content=content, username = current_user.username)
         else:
             selected_device = Device.query.filter_by(id=content['selectForm'].device.data).first()
             selected_device.selected = False
             content = update_content(content)
             db.session.commit()
-            return render_template(url_for('blueprint.capture') + '.html', content=content)
+            return render_template(url_for('blueprint.capture') + '.html', content=content, username = current_user.username)
     
     if content['timeCaptureForm'].validate_on_submit():
         time = content['timeCaptureForm'].timeSelector.data
@@ -102,8 +102,8 @@ def capture():
             content = update_content(content)
             logger.info("Capture stopped")   
         logger.info(f"Capture status: {content['capture']}")
-        return render_template(url_for('blueprint.capture') + '.html', content=content)
-    return render_template(url_for('blueprint.capture') + '.html', content=content)
+        return render_template(url_for('blueprint.capture') + '.html', content=content, username = current_user.username)
+    return render_template(url_for('blueprint.capture') + '.html', content=content, username = current_user.username)
 
 
 @login_required
@@ -153,7 +153,7 @@ def log():
     }
     content = update_content(content)
 
-    return render_template(url_for('blueprint.log') + '.html', content=content)
+    return render_template(url_for('blueprint.log') + '.html', content=content, username = current_user.username)
 
 
 def get_capture(time:int=None, number:int=None, list_device:list[Device]=None)->bool:
