@@ -9,7 +9,9 @@ from scapy.all import sniff, wrpcap, rdpcap, conf
 from ...models.sniffer import Sniffer
 import os
 import time
+import pytz
 
+LOCALISATION=os.getenv('LOCALISATION', 'America/Montreal')
 logger = setup_logging()
 sniffer = None
 
@@ -73,7 +75,7 @@ def capture():
         logger.info(f"Capture action: {content['playCaptureForm'].value.data}")
         if content['playCaptureForm'].value.data == "play":
             content['capture']="play"
-            time=datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+            time=datetime.now(tz=pytz.timezone(LOCALISATION)).strftime('%Y-%m-%d_%H:%M:%S')
             if content['selected_devices']:
                 logger.info(f"Capture devices: {content['selected_devices']}")
                 hosts_str="_".join([str(d.id) for d in content['selected_devices']])
@@ -181,7 +183,7 @@ def get_capture(time:int=None, number:int=None, list_device:list[Device]=None)->
     Returns:
         - List of packets.
     """
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+    timestamp = datetime.now(pytz.timezone(LOCALISATION)).strftime('%Y-%m-%d_%H:%M:%S')
     interface = os.getenv('INTERFACE', 'wlan1')
 
     try:
@@ -232,7 +234,7 @@ def save_capture(device_id, file_path):
         - device_id: Integer, id of the Device.
         - file_path: String, path to the Capture file.
     """
-    capture = Capture(device_id=device_id, file_path=file_path, date=datetime.now())
+    capture = Capture(device_id=device_id, file_path=file_path, date=datetime.now(tz=pytz.timezone(LOCALISATION)))
     db.session.add(capture)
     db.session.commit()
     logger.info(f"Capture saved in the database: {capture}")

@@ -8,7 +8,10 @@ else
 read -p "Enter Passphrase: " passphrase
 fi
 read -p "Access Point Wireless Interface (e.g., wlan1): " interface
-
+if [ -z "$interface" ]; then
+  echo "Warning: Interface not specified, using default wlan1."
+  interface="wlan1"
+fi
 
 # Path to the .env file
 env_file=".env"
@@ -63,7 +66,12 @@ EOF
 systemctl enable networking
 sudo systemctl restart networking
 # Step 3: Install and Configure Hostapd
+# don't install if already installed
+if dpkg -s hostapd &>/dev/null; then
+  echo "hostapd is already installed."
+else
 sudo apt install -y hostapd
+fi
 echo "Creating hostapd configuration..."
 if [ "$open" == "n" ]; then
   if [ -z "$passphrase" ] || [ ${#passphrase} -lt 8 ] || [ ${#passphrase} -gt 63 ]; then
@@ -107,7 +115,11 @@ sudo systemctl enable hostapd
 
 # Step 4: Install and Configure DNSMasq for DHCP
 echo "Configuring dnsmasq..."
+if dpkg -s dnsmasq &>/dev/null; then
+  echo "dnsmasq is already installed."
+else
 sudo apt-get install -y dnsmasq
+fi
 cat <<EOF > /etc/dnsmasq.conf
 interface=$interface
 dhcp-range=192.168.10.50,192.168.10.150,12h
@@ -141,7 +153,11 @@ iptables-save > /etc/iptables/rules.v4
 
 # Install iptables-persistent for persistence
 export DEBIAN_FRONTEND=noninteractive
-apt-get install -y iptables-persistent
+if dpkg -s iptables-persistent &>/dev/null; then
+  echo "iptables-persistent is already installed."
+else
+sudo apt-get install -y iptables-persistent
+fi
 unset DEBIAN_FRONTEND
 
 sudo iw dev $interface set power_save off

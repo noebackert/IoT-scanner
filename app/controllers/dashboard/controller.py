@@ -4,11 +4,6 @@ from ...models.hotspot.forms import HotspotForm, EditDeviceForm
 from ...models.logging_config import setup_logging
 from scapy.all import ARP, Ether, srp
 from ...models.sql import Device, Monitoring, Capture, db
-import subprocess
-import threading
-import time
-import socket
-from datetime import datetime
 from ...utils import update_avg_ping, update_content
 from ...models.sniffer import Sniffer
 import os

@@ -10,7 +10,10 @@ import time
 import socket
 from datetime import datetime
 from ...utils import update_avg_ping, update_content
+import pytz
+import os
 
+LOCALISATION = os.getenv("LOCALISATION", "America/Montreal")
 logger = setup_logging()
 
 @login_required
@@ -210,7 +213,7 @@ def single_ping_check(device:Device):
     ping = get_ping_from_file(file_name)
     device.is_online = is_online
     with pyflasql_obj.myapp.app_context():
-        new_ping = Monitoring(device_id=device.id, ip=device.ipv4, ping=ping, date=datetime.now())
+        new_ping = Monitoring(device_id=device.id, ip=device.ipv4, ping=ping, date=datetime.now(tz=pytz.timezone(LOCALISATION)))
         db.session.add(new_ping)
         update_avg_ping()
         db.session.commit()

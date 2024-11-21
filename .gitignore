@@ -1,2 +1,9 @@
 .env
+__pycache__
 *.pyc
+*.pyo
+*.pcap
+*.pcapng
+nmap_output.txt
+ping_output.txt
+pings/
