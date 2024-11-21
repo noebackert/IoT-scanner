@@ -7,12 +7,16 @@ from flask_login import UserMixin, login_user, LoginManager, login_required, log
 from flask_bcrypt import Bcrypt
 import os
 from .sql import db, UserDB, create_admin, create_hotspot_device
-from .sniffer import Sniffer
+from .sniffer import Sniffer, IDSSniffer
+from .logging_config import setup_logging
+
+INTERFACE = os.getenv('INTERFACE', "wlan1")
 
 class PyFlaSQL():
     """Create the application PyFlaSQL"""
     def __init__(self):
-        self.sniffer = Sniffer(os.environ.get('INTERFACE', 'wlan1'), "sniffer.pcap")
+        self.sniffer = IDSSniffer(INTERFACE, "sniffer.pcap", 1000)
+        self.logger = setup_logging()
         self.myapp = self.create_app("config")  # Creating the app using the config file
         with self.myapp.app_context():
             db.create_all()
