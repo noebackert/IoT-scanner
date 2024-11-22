@@ -199,6 +199,7 @@
         <table class="table table-striped">
             <thead>
                 <tr>
+                    <th>Action</th>
                     <th>ID</th>
                     <th>Date</th>
                     <th>Device name</th>
@@ -210,6 +211,10 @@
                 {% if content["logs"] %}
                     {% for log in content["logs"] %}
                         <tr>
+                            <td> <a href="{{ url_for('blueprint.delete_log', log_id=log.Capture.id) }}">
+                                    <button class="btn btn-danger">Delete</button>
+                                </a>
+                            </td>
                             <td>{{ log.Capture.id}}</td>
                             <td>{{ log.Capture.date }}</td>
                             <td>{{ log.Device.name }}</td>

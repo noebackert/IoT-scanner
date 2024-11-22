@@ -5,7 +5,7 @@ from flask import Blueprint
 from ...controllers.controller import index, login, register, logout, about
 from ...controllers.user_profile.controller import user_profile, modify_password
 from ...controllers.hotspot.controller import hotspot, edit_device, delete_device
-from ...controllers.capture.controller import capture, log
+from ...controllers.capture.controller import capture, log, delete_log
 from ...controllers.dashboard.controller import dashboard
 
 blueprint = Blueprint('blueprint', __name__, template_folder='../templates', static_folder='../../assets')
@@ -29,6 +29,6 @@ blueprint.route('/hotspot/delete_device', methods=['GET', 'POST'])(delete_device
 # Capture
 blueprint.route('/capture/capture', methods=['GET', 'POST'])(capture)
 blueprint.route('/capture/log', methods=['GET', 'POST'])(log)
-
+blueprint.route('/capture/delete_log', methods=['GET', 'POST'])(delete_log)
 # Dashboard
 blueprint.route('/dashboard/dashboard', methods=['GET', 'POST'])(dashboard)

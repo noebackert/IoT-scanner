@@ -6,6 +6,7 @@ from collections import deque
 from .logging_config import setup_logging
 from .handle_anomaly import log_anomaly
 from time import time
+from .sql import Device
 
 PORT_SCAN_THRESHOLD = 20
 DOS_THRESHOLD = 10
@@ -109,42 +110,39 @@ class IDSSniffer(Thread):
     def detect_anomalies_packet(self, packet):
         """Logic to detect anomalies from single packets"""
         if packet.haslayer(IP):
-            # Anomalies from Internet Protocols packets
             src_ip = packet[IP].src
+            victim_ip = packet[IP].dst
+            victim_device = Device.query.filter_by(ipv4=victim_ip).first()
+
+            # Initialize tracking structures
+            if src_ip not in self.port_scan_tracker:
+                self.port_scan_tracker[src_ip] = set()
+            if src_ip not in self.anomaliesDetected:
+                self.anomaliesDetected[src_ip] = set()
+            if src_ip not in self.last_anomaly_write_time:
+                self.last_anomaly_write_time[src_ip] = 0
 
             if packet.haslayer('TCP'):
-                # Anomalies from TCP packets
                 dst_port = packet['TCP'].dport
-
-                # Track unique ports per IP for port scan detection
-                if src_ip not in self.port_scan_tracker:
-                    self.port_scan_tracker[src_ip] = set()
                 self.port_scan_tracker[src_ip].add(dst_port)
-                # Check for port scan anomalies using thresholds
+
+                # Detect port scan
                 if len(self.port_scan_tracker[src_ip]) > PORT_SCAN_THRESHOLD:
-                    # Check if 'port_scan' is not already in the anomalies set for the IP
-                    if 'port_scan' not in self.anomaliesDetected.get(src_ip, set()):
+                    if 'port_scan' not in self.anomaliesDetected[src_ip]:
                         self.logger.info(f"[!] Probable port scan detected from {src_ip}")
                         self.detectedAnomaliesCount['port_scan'] += 1
-                        self.logger.info(f"[!] {self.anomaliesDetected}")
-                        
-                        # Add 'port_scan' to the anomalies for this IP, without resetting the set
-                        if src_ip not in self.anomaliesDetected:
-                            self.anomaliesDetected[src_ip] = set()     
                         self.anomaliesDetected[src_ip].add('port_scan')
-                        self.logger.info(f"[!] set of {src_ip} : {self.anomaliesDetected[src_ip]}")
-                        # Check if enough time has passed since the last write
-                        current_time = time()
-                        if (src_ip not in self.last_anomaly_write_time or
-                            current_time - self.last_anomaly_write_time[src_ip] > 1):  # 1-second cooldown to prevent high speed port scan to trigger multiple writes
-                            
-                            self.last_anomaly_write_time[src_ip] = current_time
 
+                        current_time = time()
+                        if current_time - self.last_anomaly_write_time[src_ip] > 1:  # Cooldown
+                            self.last_anomaly_write_time[src_ip] = current_time
                             try:
                                 self.write_to_file(detectedAnomaly="port_scan")
-                                log_anomaly("port_scan", self.detectedAnomaliesCount['port_scan'])
+                                attacker_device = Device.query.filter_by(ipv4=src_ip).first()
+
+                                log_anomaly(anomaly_type="port_scan", anomaly_number=self.detectedAnomaliesCount['port_scan'], attacker_id=attacker_device.id, id_victim=victim_device.id)
                             except Exception as e:
-                                self.logger.error(f"Writing error {e}")
+                                self.logger.error(f"Error writing anomaly: {e}")
 
                 # dos Detection: If the source IP is sending a large number of packets, flag it
           

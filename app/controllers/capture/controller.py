@@ -238,3 +238,16 @@ def save_capture(device_id, file_path):
     db.session.add(capture)
     db.session.commit()
     logger.info(f"Capture saved in the database: {capture}")
+
+@login_required
+def delete_log():
+    log_id = request.args.get('log_id')
+    log = Capture.query.filter_by(id=log_id).first()
+    if log:
+        os.remove(log.file_path)
+        db.session.delete(log)
+        db.session.commit()
+        flash(f"Capture deleted", 'success')
+    else:
+        flash(f"Capture not found", 'error')
+    return redirect(url_for('blueprint.capture'))
