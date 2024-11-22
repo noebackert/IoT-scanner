@@ -85,6 +85,25 @@ class Capture(db.Model):
     file_path = db.Column(db.String(255), nullable=False)
     date = db.Column(db.DateTime, nullable=False)
 
+class Anomaly(db.Model):
+    """
+    Represents an Anomaly model in the database.
+    
+    Attributes:
+        - id: Integer field, primary key of the Anomaly.
+        - anomaly_type: String field, type of the Anomaly.
+        - file_path: String field, path to the Anomaly file.
+        - date: DateTime field, date of the Anomaly.
+        - threat_level: Integer field, threat level of the Anomaly.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    anomaly_type = db.Column(db.String(50), nullable=False)
+    threat_level = db.Column(db.Integer, nullable=False)
+    threat_label = db.Column(db.String(50), nullable=False)
+    file_path = db.Column(db.String(255), nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
+
+
 
 def create_admin():
     """Create an admin user."""

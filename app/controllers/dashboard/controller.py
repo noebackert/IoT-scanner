@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from ...models.hotspot.forms import HotspotForm, EditDeviceForm
 from ...models.logging_config import setup_logging
 from scapy.all import ARP, Ether, srp
-from ...models.sql import Device, Monitoring, Capture, db
+from ...models.sql import Device, Monitoring, Capture, Anomaly ,db
 from ...utils import update_avg_ping, update_content
 from ...models.sniffer import Sniffer
 import os
@@ -21,9 +21,11 @@ def dashboard():
     """
     # Get all devices from the database ordered by IP address
     devices = Device.query.order_by(Device.ipv4).all()
+    anomalies = Anomaly.query.order_by(Anomaly.date.desc()).all()
     content = {
         'form': HotspotForm(),
         'devices': [d for d in devices],
+        'anomalies': [a for a in anomalies]
         }
     
     return render_template(url_for('blueprint.dashboard') + '.html', content=content, username = current_user.username)

@@ -15,14 +15,15 @@ INTERFACE = os.getenv('INTERFACE', "wlan1")
 class PyFlaSQL():
     """Create the application PyFlaSQL"""
     def __init__(self):
-        self.sniffer = IDSSniffer(INTERFACE, "sniffer.pcap", 1000)
         self.logger = setup_logging()
         self.myapp = self.create_app("config")  # Creating the app using the config file
+        self.sniffer = IDSSniffer(self.myapp, INTERFACE, "sniffer.pcap", 1000)
+
         with self.myapp.app_context():
             db.create_all()
             create_admin()
             create_hotspot_device()
-
+            self.sniffer.start()
         # debug - print the URL map of blueprint (check the console)
         # print(self.myapp.url_map)
         self.login_manager = LoginManager()
@@ -38,7 +39,5 @@ class PyFlaSQL():
         db.init_app(app)
         app.config['DEBUG'] = True  # Force debug mode for testing
         from ..view.routes.blueprint import blueprint
-        app.register_blueprint(blueprint, url_prefix='/')
-        self.sniffer.start()
-    
+        app.register_blueprint(blueprint, url_prefix='/')    
         return app

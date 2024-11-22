@@ -3,11 +3,9 @@ from typing import Any, Iterable, Mapping
 from scapy.all import sniff, wrpcap, IP, TCP
 from threading import Thread, Event
 from collections import deque
-import os
-print("Current working directory: ", os.getcwd())
-
 from .logging_config import setup_logging
-
+from .handle_anomaly import log_anomaly
+from time import time
 
 PORT_SCAN_THRESHOLD = 20
 DOS_THRESHOLD = 10
@@ -64,8 +62,9 @@ class Sniffer(Thread):
 
 
 class IDSSniffer(Thread):
-    def __init__(self, interface="wlan1", filepath="sniffer.pcap", max_packets=1000):
+    def __init__(self, current_app, interface="wlan1", filepath="sniffer.pcap", max_packets=1000):
         super().__init__()
+        self.app = current_app
         self.daemon = True
         self.last_packet = None
         self.interface = interface
@@ -79,24 +78,26 @@ class IDSSniffer(Thread):
         self.packet_counter = 0
         self.port_scan_tracker = {}
         self.dos_tracker = {}
-        self.nbAnomaliesDetected = 0
         self.anomalies = ["port_scan", "dos"]
         self.anomaliesPath = {
             elt: f"app/static/anomalies/{elt}" for elt in self.anomalies
         }
+        self.detectedAnomaliesCount = {elt : 0 for elt in self.anomalies}
+        self.last_anomaly_write_time = {}
         self.anomaliesDetected = {}
 
     def run(self):
-        while not self.stop_sniffer.is_set():
-            try:
-                sniff(
-                    iface=self.interface,
-                    prn=self.process_packet,
-                    stop_filter=self.should_stop_sniffer,
-                    timeout=1  # Sniff for 1 second, then re-check events
-                )
-            except Exception as e:
-                self.logger.info(f"[!] Sniffer error: {e}")
+        with self.app.app_context():
+            while not self.stop_sniffer.is_set():
+                try:
+                    sniff(
+                        iface=self.interface,
+                        prn=self.process_packet,
+                        stop_filter=self.should_stop_sniffer,
+                        timeout=1  # Sniff for 1 second, then re-check events
+                    )
+                except Exception as e:
+                    self.logger.info(f"[!] Sniffer error: {e}")
 
     def join(self, timeout=None):
         self.stop_sniffer.set()
@@ -124,22 +125,26 @@ class IDSSniffer(Thread):
                     # Check if 'port_scan' is not already in the anomalies set for the IP
                     if 'port_scan' not in self.anomaliesDetected.get(src_ip, set()):
                         self.logger.info(f"[!] Probable port scan detected from {src_ip}")
-                        self.nbAnomaliesDetected += 1
+                        self.detectedAnomaliesCount['port_scan'] += 1
                         self.logger.info(f"[!] {self.anomaliesDetected}")
                         
                         # Add 'port_scan' to the anomalies for this IP, without resetting the set
                         if src_ip not in self.anomaliesDetected:
-                            self.anomaliesDetected[src_ip] = set()
-                        
+                            self.anomaliesDetected[src_ip] = set()     
                         self.anomaliesDetected[src_ip].add('port_scan')
                         self.logger.info(f"[!] set of {src_ip} : {self.anomaliesDetected[src_ip]}")
-                        
-                        try:
-                            self.write_to_file(detectedAnomaly="port_scan")
-                            self.logger.info("writing anomaly")
-                        except Exception as e:
-                            self.logger.error(f"Writing error {e}")
+                        # Check if enough time has passed since the last write
+                        current_time = time()
+                        if (src_ip not in self.last_anomaly_write_time or
+                            current_time - self.last_anomaly_write_time[src_ip] > 1):  # 1-second cooldown to prevent high speed port scan to trigger multiple writes
+                            
+                            self.last_anomaly_write_time[src_ip] = current_time
 
+                            try:
+                                self.write_to_file(detectedAnomaly="port_scan")
+                                log_anomaly("port_scan", self.detectedAnomaliesCount['port_scan'])
+                            except Exception as e:
+                                self.logger.error(f"Writing error {e}")
 
                 # dos Detection: If the source IP is sending a large number of packets, flag it
           
@@ -153,8 +158,8 @@ class IDSSniffer(Thread):
         #self.logger.info(f"[*] New packet : {packet}")
         
     def write_to_file(self, detectedAnomaly:str):
-        self.filepath = self.anomaliesPath[detectedAnomaly]+f"/{self.nbAnomaliesDetected}.pcap"
-        wrpcap(self.filepath, list(self.packet_buffer))
+        self.filepath = self.anomaliesPath[detectedAnomaly]+f"/{self.detectedAnomaliesCount[detectedAnomaly]}.pcap"
+        wrpcap(self.filepath, list(self.packet_buffer)) # write the max_len last packets to the file
         self.logger.info(f"[!] Anomalous packets saved to {self.filepath}")
         
     def pause(self):

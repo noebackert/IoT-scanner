@@ -4,7 +4,7 @@ from ...models.capture.forms import CaptureTimeForm, CaptureNumberForm, selectFo
 from ...models.logging_config import setup_logging
 from ...models.sql import Device, Capture, Monitoring, db
 from datetime import datetime
-from ...utils import update_avg_ping, update_content, with_app_context
+from ...utils import update_avg_ping, update_content
 from scapy.all import sniff, wrpcap, rdpcap, conf
 from ...models.sniffer import Sniffer
 import os

@@ -6,14 +6,57 @@ License: check the LICENSE file.
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-<div class="container p-5 my-5">
-    <!-- Main Title -->
-    <h1 class="text-center">Dashboard</h1>
-    <div class="container p-5 my-5 border">
-        <!-- Description -->
-        <p class="lead">
-        </p>
-      
+<div class="container dashboard-container">
+    <h1 class="text-center">Intrusion Detection System Dashboard</h1>
+    
+    <!-- Anomalies Types -->
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title text-center">Anomaly detected</h3>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Type of anomaly</th>
+                        <th>Filepath</th>
+                        <th>Severity level</th>
+                        <th>Severity label</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for elt in content["anomalies"] %}
+                    <tr>
+                        <td>{{ elt.id }}</td>
+                        <td>{{ elt.anomaly_type }}</td>
+                        <td>{{ elt.file_path }}</td>
+                        <td>{{ elt.threat_level }}</td>
+                        <td>{{ elt.threat_label}}</td>
+                        <td>{{ elt.date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+    
+            </table>
+        </div>
+    </div>
+
+    <!-- Anomalies Severity -->
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title text-center">Anomaly Severity</h3>
+            <p class="text-center">Severity of anomalies detected</p>
+            <ul class="list-group">
+            </ul>
+        </div>
+    </div>
+
+    <!-- Pie Chart -->
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title text-center">Anomalies Distribution</h3>
+            <canvas id="anomaliesChart"></canvas>
+        </div>
     </div>
 </div>
 {% endblock %}
