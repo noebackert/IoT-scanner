@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from ...models.hotspot.forms import HotspotForm, EditDeviceForm
 from ...models.logging_config import setup_logging
 from scapy.all import ARP, Ether, srp
-from ...models.sql import Device, Monitoring, Capture, db
+from ...models.sql import Device, Monitoring, Capture, Anomaly, db
 import subprocess
 import threading
 import time
@@ -194,6 +194,11 @@ def delete_device():
             db.session.delete(capture)
             db.session.commit()
             logger.info(f"Capture deleted: {capture}")
+        anomaliesToDelete = Anomaly.query.filter_by(id_victim=selected_device.id).all()
+        for anomaly in anomaliesToDelete:
+            db.session.delete(anomaly)
+            db.session.commit()
+            logger.info(f"Anomaly deleted: {anomaly}")
         db.session.delete(selected_device)
         db.session.commit()
         flash("Device deleted successfully!", "success")

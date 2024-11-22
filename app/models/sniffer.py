@@ -101,6 +101,7 @@ class IDSSniffer(Thread):
                     self.logger.info(f"[!] Sniffer error: {e}")
 
     def join(self, timeout=None):
+        self.logger.info("[!] Stopping Sniffer")
         self.stop_sniffer.set()
         super().join(timeout)
 
@@ -143,11 +144,21 @@ class IDSSniffer(Thread):
                                 log_anomaly(anomaly_type="port_scan", anomaly_number=self.detectedAnomaliesCount['port_scan'], attacker_id=attacker_device.id, id_victim=victim_device.id)
                             except Exception as e:
                                 self.logger.error(f"Error writing anomaly: {e}")
+            # To implement:
+                # Dos Check
 
-                # dos Detection: If the source IP is sending a large number of packets, flag it
-          
+                # Suspicious packet size check
 
+                # Unauth protocols
 
+                # Unusual destination IPs
+
+                # Repeated connection attempts (SYN flood)
+
+                # DNS tunneling (abnormal long DNS queries)
+
+                # Malicious payloads (check for known signatures, key words, ..)
+ 
     def process_packet(self, packet):
         self.last_packet = packet
         self.packet_buffer.append(packet)

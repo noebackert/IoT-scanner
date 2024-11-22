@@ -7,8 +7,7 @@ Business logic for user profile
 from flask import Flask, render_template, url_for, redirect, flash
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from ...models.user_profile.forms import changePassword
-from ...models.sql import db, UserDB
-from ...controllers.controller import get_bcrypt
+from ...models.sql import db, bcrypt, UserDB
 from functools import wraps
 
 
@@ -42,7 +41,6 @@ def modify_password():
     content = {
         "form" : changePassword()
     }
-    bcrypt = get_bcrypt()
     if content['form'].validate_on_submit():
         if current_user:
             if bcrypt.check_password_hash(current_user.password, content['form'].oldPassword.data):

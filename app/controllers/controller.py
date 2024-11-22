@@ -3,18 +3,10 @@ Business logic for the main application
 """
 from flask import Flask, render_template, url_for, redirect, flash
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
-from flask_bcrypt import Bcrypt
 
-from ..models.app import PyFlaSQL
-from ..models.sql import db, UserDB
+from ..models.sql import db, bcrypt, UserDB
 from ..models.auth import LoginForm, RegisterForm
 from functools import wraps
-
-def get_bcrypt():
-    pyflasql_obj = PyFlaSQL()
-    bcrypt = Bcrypt(pyflasql_obj.myapp)
-    return bcrypt
-
 
 def admin_required(func):
     """A decorator to check if the user is an admin."""
@@ -55,7 +47,7 @@ def login():
         Returns:
             - rendered .html template (dashboard.html if login success or login.html if login fail)
         """
-    bcrypt = get_bcrypt()
+    #bcrypt = get_bcrypt()
     form = LoginForm()
     if form.validate_on_submit():
         user = UserDB.query.filter_by(username=form.username.data).first()
@@ -110,10 +102,11 @@ def register():
         Returns:
             - rendered .html template
         """
-    bcrypt = get_bcrypt()
+    #bcrypt = get_bcrypt()
     form = RegisterForm()
 
     if form.validate_on_submit():
+        from app import bcrypt
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         new_user = UserDB(username=form.username.data, password=hashed_password, role=0)
         db.session.add(new_user)
