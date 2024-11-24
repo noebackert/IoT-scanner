@@ -23,11 +23,9 @@ def dashboard():
     Control the hotspot page.
     Login is required to view this page.
     """
-    # Get all devices from the database ordered by IP address
     devices = Device.query.order_by(Device.ipv4).all()
     anomalies = Anomaly.query.order_by(Anomaly.date.desc()).all()
     data_rates = DataRate.query.order_by(DataRate.date.desc()).all()
-    # mean data_rate = data_rate of device id = 1
     average_data_rate = Device.query.filter_by(id=1).first().average_data_rate
     config = load_config()
     data_rate_chart_data = {
@@ -35,7 +33,6 @@ def dashboard():
         'data': [dr.rate for dr in data_rates],
         'average': average_data_rate,
     }
-
     content = {
         'form': HotspotForm(),
         'devices': [d for d in devices],
@@ -43,7 +40,6 @@ def dashboard():
         'data_rate_global': [d for d in data_rates],
         'data_rate_chart_data': jsonify(data_rate_chart_data).json,  # Serialize JSON for JavaScript
         'data_rate_refresh': config["Data_rate"].get("Refresh_global_data_rate", 10)        }
-    logger.info(f"data_rate_chart_data: {data_rate_chart_data}")
     
     return render_template(url_for('blueprint.dashboard') + '.html', content=content, username = current_user.username)
 
@@ -55,11 +51,8 @@ def get_data_rate():
     """
     mean_data_rate = Device.query.filter_by(id=1).first().average_data_rate
     data_rates = DataRate.query.order_by(DataRate.date.desc()).limit(10)
-    # labels to local time
     montreal_tz = pytz.timezone(LOCALISATION)
-
     labels = [dr.date.astimezone(montreal_tz).strftime('%H:%M:%S') for dr in data_rates]
-
     data_rate_chart_data = {
         'labels': labels,
         'data': [dr.rate for dr in data_rates],

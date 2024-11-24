@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from ...models.hotspot.forms import HotspotForm, EditDeviceForm
 from ...models.logging_config import setup_logging
 from scapy.all import ARP, Ether, srp
-from ...models.sql import Device, Monitoring, Capture, Anomaly, db
+from ...models.sql import Device, Monitoring, Capture, Anomaly, DataRate, db
 import subprocess
 import threading
 import time
@@ -199,6 +199,11 @@ def delete_device():
             db.session.delete(anomaly)
             db.session.commit()
             logger.info(f"Anomaly deleted: {anomaly}")
+        dataRateToDelete = DataRate.query.filter_by(device_id=selected_device.id).all()
+        for dataRate in dataRateToDelete:
+            db.session.delete(dataRate)
+            db.session.commit()
+            logger.info(f"DataRate deleted: {dataRate}")
         db.session.delete(selected_device)
         db.session.commit()
         flash("Device deleted successfully!", "success")

@@ -11,6 +11,6 @@
         }
     },
     "Data_rate": {
-        "Refresh_global_data_rate": 4
+        "Refresh_global_data_rate": 10
     }
 }
