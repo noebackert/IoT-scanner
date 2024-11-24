@@ -6,8 +6,20 @@ License: check the LICENSE file.
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
+
+
 <div class="container dashboard-container">
     <h1 class="text-center">Intrusion Detection System Dashboard</h1>
+    
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title text-center">Data Rate Exchanged</h3>
+            <p class="text-center">Data rate exchanged between the server and the client</p>
+            <figure>
+                <canvas id="dataRateChart"></canvas>
+            </figure>
+        </div>
+    </div>
     
     <!-- Anomalies Types -->
     <div class="card">
@@ -59,5 +71,86 @@ License: check the LICENSE file.
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const ctx = document.getElementById('dataRateChart').getContext('2d');
+
+        // Initial chart configuration
+        const dataRateChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // Initial empty labels
+                datasets: [
+                    {
+                        label: 'Data Rate (bytes/sec)',
+                        data: [],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderWidth: 2,
+                        fill: true,
+                    },
+                    {
+                        label: 'Average Data Rate',
+                        data: [],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderDash: [5, 5],
+                        borderWidth: 2,
+                        fill: false,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    },
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time',
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Data Rate (bytes/sec)',
+                        }
+                    }
+                }
+            }
+        });
+
+        // Function to fetch data and update the chart
+        function updateChart() {
+            fetch("{{ url_for('blueprint.get_data_rate') }}")
+                .then(response => response.json())
+                .then(data => {
+                    // Update the chart data
+                    dataRateChart.data.labels = data.labels;
+                    dataRateChart.data.datasets[0].data = data.data;
+                    dataRateChart.data.datasets[1].data = Array(data.labels.length).fill(data.average); // Update average
+                    dataRateChart.update(); // Refresh the chart
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+       // Initial data fetch
+        updateChart();
+
+        // Periodic updates with refresh interval passed from Flask
+        const refreshInterval = {{ content.data_rate_refresh | tojson }};
+        setInterval(updateChart, refreshInterval * 1000); // Convert seconds to milliseconds
+    });
+</script>
+
+
+
 {% endblock %}
 

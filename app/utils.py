@@ -4,8 +4,14 @@ import subprocess
 from .models.logging_config import setup_logging
 from sqlalchemy import cast, String
 from sqlalchemy.dialects.postgresql import INET
+import json
 
 logger = setup_logging()
+
+
+def load_config():
+    with open('config.json') as config_file:
+        return json.load(config_file)
 
 def with_app_context(func):
     """A decorator to push the Flask app context to threaded functions."""

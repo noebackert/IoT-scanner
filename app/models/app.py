@@ -6,7 +6,7 @@ from flask import Flask, render_template, url_for, redirect
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 import os
 from .sql import db, bcrypt, UserDB, create_admin, create_hotspot_device
-from .sniffer import Sniffer, IDSSniffer
+from .sniffer import Sniffer, IDSSniffer, SnifferDataRate
 from .logging_config import setup_logging
 
 INTERFACE = os.getenv('INTERFACE', "wlan1")
@@ -17,6 +17,7 @@ class PyFlaSQL():
         self.logger = setup_logging()
         self.myapp = self.create_app("config")  # Creating the app using the config file
         self.sniffer = IDSSniffer(self.myapp, INTERFACE, "sniffer.pcap", 1000)
+        self.snifferDataRate = SnifferDataRate(self.myapp,"config.json",INTERFACE)
         with self.myapp.app_context():
             db.create_all()
             create_admin()
@@ -24,6 +25,7 @@ class PyFlaSQL():
             if os.environ.get("WERKZEUG_RUN_MAIN")=="true": ## Prevent creating 2 sniffers during debug mode
                 self.logger.info("[!] Sniffer created")
                 self.sniffer.start()
+                self.snifferDataRate.start()
         # debug - print the URL map of blueprint (check the console)
         # print(self.myapp.url_map)
         self.login_manager = LoginManager()

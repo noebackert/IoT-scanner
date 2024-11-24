@@ -6,11 +6,22 @@ from collections import deque
 from .logging_config import setup_logging
 from .handle_anomaly import log_anomaly
 from time import time, sleep
-from .sql import Device
+from .sql import Device, DataRate, db
+from datetime import datetime
+import pytz
+import os
+import json
+from ..utils import load_config
+
+LOCALISATION = os.getenv('LOCALISATION', 'America/Montreal')
+
+config = load_config()
+
 
 PORT_SCAN_THRESHOLD = 20
-DOS_THRESHOLD = 2
+DOS_THRESHOLD = 20
 DOS_STOP_THRESHOLD = 50
+DOS_QUEUE_SIZE = 1000
 timeToWaitAfterAnomalies = {
     "port_scan": 10,
     "dos": 10
@@ -68,7 +79,7 @@ class Sniffer(Thread):
 
 
 class IDSSniffer(Thread):
-    def __init__(self, current_app, interface="wlan1", filepath="sniffer.pcap", max_packets=100):
+    def __init__(self, current_app, interface="wlan1", filepath="sniffer.pcap", max_packets=DOS_QUEUE_SIZE):
         super().__init__()
         self.app = current_app
         self.daemon = True
@@ -89,7 +100,7 @@ class IDSSniffer(Thread):
         self.detectedAnomaliesCount = {elt : 0 for elt in self.anomalies}
         self.anomaliesDetected = {attack_type: 
                         [] for attack_type in self.anomalies}
-        
+        self.packets_data_length = {}
 
     def run(self):
         with self.app.app_context():
@@ -166,13 +177,13 @@ class IDSSniffer(Thread):
             if src_ip not in self.dos_time_tracker:
                 self.dos_time_tracker[src_ip] = {}
                 if dst_ip not in self.dos_time_tracker[src_ip]:
-                    self.dos_time_tracker[src_ip][dst_ip] = deque(maxlen=100)
+                    self.dos_time_tracker[src_ip][dst_ip] = deque(maxlen=DOS_QUEUE_SIZE)
             else:
                 if dst_ip not in self.dos_time_tracker[src_ip]:
-                    self.dos_time_tracker[src_ip][dst_ip] = deque(maxlen=100)
+                    self.dos_time_tracker[src_ip][dst_ip] = deque(maxlen=DOS_QUEUE_SIZE)
             self.dos_time_tracker[src_ip][dst_ip].append(time_now)
-            # If the time between the first and last packet of the buffer (default size = 100) is less than the threshold (freq = 100/DOS_THRESHOLD packets per second)
-            if len(self.dos_time_tracker[src_ip][dst_ip]) == 100 and self.dos_time_tracker[src_ip][dst_ip][-1] - self.dos_time_tracker[src_ip][dst_ip][0] < DOS_THRESHOLD: 
+            # If the time between the first and last packet of the buffer (default size = DOS_QUEUE_SIZE) is less than the threshold (freq = DOS_QUEUE_SIZE/DOS_THRESHOLD packets per second)
+            if len(self.dos_time_tracker[src_ip][dst_ip]) == DOS_QUEUE_SIZE and self.dos_time_tracker[src_ip][dst_ip][-1] - self.dos_time_tracker[src_ip][dst_ip][0] < DOS_THRESHOLD: 
                 # if the attacker is not already in the list of detected anomalies for DoS
                 if not self.is_detected_from_dos(src_ip, dst_ip):
                     # if the attacker is not already a victim (just replying to a DoS attack)
@@ -195,9 +206,9 @@ class IDSSniffer(Thread):
                                 self.logger.error(f"Error writing anomaly: {e}")
                     else:
                         self.write_to_file(detectedAnomaly="dos", append=True)
-            elif len(self.dos_time_tracker[src_ip][dst_ip]) == 100 \
+            elif len(self.dos_time_tracker[src_ip][dst_ip]) == DOS_QUEUE_SIZE \
                 and self.dos_time_tracker[src_ip][dst_ip][-1] - self.dos_time_tracker[src_ip][dst_ip][0] >= DOS_STOP_THRESHOLD and any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected['dos']):
-                # If the time between the first and last packet of the buffer (default size = 100) is more than the threshold (freq = 100/DOS_STOP_THRESHOLD packets per second and the attacker is in the list of detected anomalies for DoS
+                # If the time between the first and last packet of the buffer (default size = DOS_QUEUE_SIZE) is more than the threshold (freq = DOS_QUEUE_SIZE/DOS_STOP_THRESHOLD packets per second and the attacker is in the list of detected anomalies for DoS
                 self.logger.info(f"[!] End of DoS detected from {src_ip}")
                 try:
                     self.anomaliesDetected['dos'].remove({'victim_ip': dst_ip, 'attacker_ip': src_ip})                    
@@ -257,4 +268,64 @@ class IDSSniffer(Thread):
             wrpcap(self.filepath, list(self.packet_buffer), append=append) # write the max_len last packets to the file
         self.logger.info(f"[!] Anomalous packets saved to {self.filepath}")
         
-   
+           
+
+class SnifferDataRate(Thread):
+    def __init__(self, current_app, config_path="config.json", interface="wlan1"):
+        super().__init__()
+        self.daemon = True
+        self.current_app = current_app
+        self.logger=setup_logging()
+        self.interface = interface
+        self.data_rate = {}
+        self.total_data_rate = 0
+        self.config_path = config_path
+        self.capture_duration = self.load_capture_duration_from_config()
+
+    def load_capture_duration_from_config(self):
+        """Load capture duration from the config file."""
+        try:
+            with open(self.config_path) as config_file:
+                config = json.load(config_file)
+            return config["Data_rate"].get("Refresh_global_data_rate", 10)
+        except Exception as e:
+            self.logger.error(f"[!] Failed to load capture duration: {e}")
+            return 10  # Default duration
+    def run(self):
+        while True:
+            try:
+                self.capture_duration = self.load_capture_duration_from_config()
+                sniff(
+                    iface=self.interface,
+                    prn=self.packet_callback,
+                    timeout=self.capture_duration # Sniff for 1 second, then re-check events
+                )
+                self.logger.info(f"[*] Data rate: {self.data_rate}")
+                self.upload_data_rate()
+                self.data_rate = {}
+                self.total_data_rate = 0
+            except Exception as e:
+                self.logger.info(f"[!] Sniffer error: {e}")
+
+    def packet_callback(self, packet):
+        if packet.haslayer(IP):
+            src_ip = packet[IP].src
+            if src_ip not in self.data_rate:
+                self.data_rate[src_ip] = 0
+            self.data_rate[src_ip] += packet[IP].len
+        self.total_data_rate += len(packet)
+
+    def upload_data_rate(self):
+        with self.current_app.app_context():
+            for ipv4 in self.data_rate:
+                device = Device.query.filter_by(ipv4=ipv4).first()
+                if device:
+                    new_data_rate = DataRate(device_id=device.id, rate=self.data_rate[ipv4], date=datetime.now(pytz.timezone(LOCALISATION)))
+                    db.session.add(new_data_rate)
+            new_data_rate = DataRate(device_id=1, rate=self.total_data_rate, date=datetime.now(pytz.timezone(LOCALISATION)))
+            db.session.add(new_data_rate)
+            db.session.commit()
+    
+    def change_capture_duration(self, duration):
+        self.capture_duration = duration
+        self.logger.info(f"[!] New capture duration: {duration}")

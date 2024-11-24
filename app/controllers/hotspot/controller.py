@@ -105,7 +105,7 @@ def perform_network_scan(content):
                     # Check if device already exists in the database
                     device = Device.query.filter_by(mac=mac).first()
                     if not device:  # new device
-                        new_device = Device(ipv4=ipv4, mac=mac, vendor=vendor, ipv6=ipv6)
+                        new_device = Device(ipv4=ipv4, mac=mac, vendor=vendor, ipv6=ipv6, average_data_rate=0)
                         db.session.add(new_device)
                         db.session.commit()
                         logger.info(f"Device {mac} added to the database")
@@ -211,13 +211,14 @@ def single_ping_check(device:Device):
     """
     Check if the device is online by pinging it.
     """
-    file_name=f'pings/ping_{device.id}.txt'
-    with open(file_name, 'w') as output_file:
-        response = subprocess.run(["ping", "-c", "1", device.ipv4], stdout=output_file)
-    is_online = response.returncode == 0
-    ping = get_ping_from_file(file_name)
-    device.is_online = is_online
     with pyflasql_obj.myapp.app_context():
+
+        file_name=f'pings/ping_{device.id}.txt'
+        with open(file_name, 'w') as output_file:
+            response = subprocess.run(["ping", "-c", "1", device.ipv4], stdout=output_file)
+        is_online = response.returncode == 0
+        ping = get_ping_from_file(file_name)
+        device.is_online = is_online
         new_ping = Monitoring(device_id=device.id, ip=device.ipv4, ping=ping, date=datetime.now(tz=pytz.timezone(LOCALISATION)))
         db.session.add(new_ping)
         update_avg_ping()
@@ -227,14 +228,16 @@ def single_ping_check(device:Device):
 
 def monitor_ping_device(device:Device):
     """Monitor the connection of a device by pinging it."""
+    from app import pyflasql_obj
     while True:
-        is_online = single_ping_check(device)
-        device.is_online = is_online
-        db.session.commit()
-        if not is_online:
-            logger.info(f"Device {device.ipv4} is offline. Stopping monitoring")
-            break
-        time.sleep(5)  # Ping every 5 seconds
+        with pyflasql_obj.myapp.app_context():
+            is_online = single_ping_check(device)
+            device.is_online = is_online
+            db.session.commit()
+            if not is_online:
+                logger.info(f"Device {device.ipv4} is offline. Stopping monitoring")
+                break
+            time.sleep(5)  # Ping every 5 seconds
     return is_online
 
 
