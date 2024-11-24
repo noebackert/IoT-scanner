@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from ...models.hotspot.forms import HotspotForm, EditDeviceForm
 from ...models.logging_config import setup_logging
 from scapy.all import ARP, Ether, srp
-from ...models.sql import Device, Monitoring, Capture, Anomaly, db
+from ...models.sql import Device, Monitoring, Capture, Anomaly, DataRate, db
 import subprocess
 import threading
 import time
@@ -12,6 +12,9 @@ from datetime import datetime
 from ...utils import update_avg_ping, update_content
 import pytz
 import os
+from sqlalchemy import cast, String
+from sqlalchemy.dialects.postgresql import INET
+
 
 LOCALISATION = os.getenv("LOCALISATION", "America/Montreal")
 logger = setup_logging()
@@ -25,46 +28,24 @@ def hotspot():
     # Get all devices from the database ordered by IP address
     devices = Device.query.order_by(Device.ipv4).all()
     content = {
-        'form': HotspotForm(),
         'devices': [d for d in devices],
         }
     logger.info(f"Content : {content}")
-    if content['form'].validate_on_submit():
-        devices = Device.query.all()
-        thread_scan = threading.Thread(target=perform_network_scan, args=(content,))
-        thread_scan.start()
-        content = update_content(content)
-        render_template(url_for('blueprint.hotspot') + '.html', content=content, username = current_user.username)
-    else:
-        content = update_content(content)
-        logger.info("Scan status is True")
-    for device in content['devices']:
-        if not single_ping_check(device):
-            device.is_online = False
-            device.avg_ping = 9999
-            db.session.commit()
-            logger.info(f"Device {device.ipv4} is offline")
+   
     return render_template(url_for('blueprint.hotspot') + '.html', content=content, username = current_user.username)
 
-    
-
-def reverse_dns_lookup(ipv4):
-    try:
-        # Perform reverse DNS lookup to get the hostname or IPv6 address
-        host = socket.gethostbyaddr(ipv4)
-        return host[2]  # This returns a list of IPv6 addresses if available
-    except (socket.herror, socket.gaierror):
-        logger.warning(f"Could not perform reverse DNS lookup for IP: {ipv4}")
-        return None
 
 
 
-def perform_network_scan(content):
+
+@login_required
+def scan():
     """
-    Perform a network scan to find devices connected to the hotspot & resend page when finished.
+    Control the scan logic to find devices connected to the hotspot.
+    API endpoint to perform a network scan.
     """
     from app import pyflasql_obj
-
+    devices_to_json = []
     with pyflasql_obj.myapp.app_context():
         target_ip = "192.168.10.50-150"  # defined by the hotspot DHCP range
         with open("nmap_output.txt", "w") as output_file:
@@ -95,17 +76,13 @@ def perform_network_scan(content):
                         vendor = "Unknown"
                         # Handle case where the vendor might be missing or in an unexpected format
                         logger.warning(f"Could not parse MAC address or vendor for IP: {ipv4}")
-                    
-                    # Perform reverse DNS lookup to get IPv6 address
-                    ipv6 = reverse_dns_lookup(ipv4)
-
-                    # Append device info including IPv6 if found
+                                        # Append device info including IPv6 if found
                     logger.info(f"Found device: {ipv4} {mac} {vendor} {ipv6 if ipv6 else 'No IPv6 found'}")
 
                     # Check if device already exists in the database
                     device = Device.query.filter_by(mac=mac).first()
                     if not device:  # new device
-                        new_device = Device(ipv4=ipv4, mac=mac, vendor=vendor, ipv6=ipv6)
+                        new_device = Device(ipv4=ipv4, mac=mac, vendor=vendor, ipv6=ipv6, average_data_rate=0)
                         db.session.add(new_device)
                         db.session.commit()
                         logger.info(f"Device {mac} added to the database")
@@ -126,8 +103,45 @@ def perform_network_scan(content):
                             device.ipv6 = ipv6
                         db.session.commit()
                         logger.info(f"Device {mac} IP address updated to {ipv4} and IPv6 updated to {ipv6 if ipv6 else 'No IPv6'}")
-        return content
+        devices_to_json = [{
+            'id': d.id,
+            'name': d.name,
+            'ipv4': d.ipv4,
+            'ipv6': d.ipv6,
+            'mac': d.mac,
+            'vendor': d.vendor,
+            'model': d.model,
+            'version': d.version,
+            'is_online': d.is_online,
+            'avg_ping': d.avg_ping,
+            'average_data_rate': d.average_data_rate,
+            'selected': d.selected,
+        } for d in Device.query.order_by(cast(Device.ipv4, INET)).all()]
+        return jsonify(devices_to_json)
 
+
+@login_required
+def get_data():
+    """
+    Get the average ping of all devices.
+    """
+    devices = Device.query.order_by(cast(Device.ipv4, INET)).all()
+    # to dictionary using key-value pairs
+    json_devices = [{
+        'id': d.id,
+        'name': d.name,
+        'ipv4': d.ipv4,
+        'ipv6': d.ipv6,
+        'mac': d.mac,
+        'vendor': d.vendor,
+        'model': d.model,
+        'version': d.version,
+        'is_online': d.is_online,
+        'avg_ping': d.avg_ping,
+        'average_data_rate': d.average_data_rate,
+        'selected': d.selected,
+    } for d in devices]
+    return jsonify(json_devices)
 
 
 @login_required
@@ -199,6 +213,11 @@ def delete_device():
             db.session.delete(anomaly)
             db.session.commit()
             logger.info(f"Anomaly deleted: {anomaly}")
+        dataRateToDelete = DataRate.query.filter_by(device_id=selected_device.id).all()
+        for dataRate in dataRateToDelete:
+            db.session.delete(dataRate)
+            db.session.commit()
+            logger.info(f"DataRate deleted: {dataRate}")
         db.session.delete(selected_device)
         db.session.commit()
         flash("Device deleted successfully!", "success")
@@ -211,13 +230,14 @@ def single_ping_check(device:Device):
     """
     Check if the device is online by pinging it.
     """
-    file_name=f'pings/ping_{device.id}.txt'
-    with open(file_name, 'w') as output_file:
-        response = subprocess.run(["ping", "-c", "1", device.ipv4], stdout=output_file)
-    is_online = response.returncode == 0
-    ping = get_ping_from_file(file_name)
-    device.is_online = is_online
     with pyflasql_obj.myapp.app_context():
+
+        file_name=f'pings/ping_{device.id}.txt'
+        with open(file_name, 'w') as output_file:
+            response = subprocess.run(["ping", "-c", "1", device.ipv4], stdout=output_file)
+        is_online = response.returncode == 0
+        ping = get_ping_from_file(file_name)
+        device.is_online = is_online
         new_ping = Monitoring(device_id=device.id, ip=device.ipv4, ping=ping, date=datetime.now(tz=pytz.timezone(LOCALISATION)))
         db.session.add(new_ping)
         update_avg_ping()
@@ -227,14 +247,16 @@ def single_ping_check(device:Device):
 
 def monitor_ping_device(device:Device):
     """Monitor the connection of a device by pinging it."""
+    from app import pyflasql_obj
     while True:
-        is_online = single_ping_check(device)
-        device.is_online = is_online
-        db.session.commit()
-        if not is_online:
-            logger.info(f"Device {device.ipv4} is offline. Stopping monitoring")
-            break
-        time.sleep(5)  # Ping every 5 seconds
+        with pyflasql_obj.myapp.app_context():
+            is_online = single_ping_check(device)
+            device.is_online = is_online
+            db.session.commit()
+            if not is_online:
+                logger.info(f"Device {device.ipv4} is offline. Stopping monitoring")
+                break
+            time.sleep(5)  # Ping every 5 seconds
     return is_online
 
 
@@ -250,3 +272,4 @@ def get_ping_from_file(file:str):
                 logger.info(f"Ping: {ping} ms")
                 return ping
     return 9999
+

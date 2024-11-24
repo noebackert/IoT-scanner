@@ -24,6 +24,7 @@ def capture():
     global sniffer
     devices = Device.query.all()
     joined_logs = db.session.query(Capture, Device).join(Device).all()
+    
     content = {
         'timeCaptureForm': CaptureTimeForm(),
         'numberCaptureForm': CaptureNumberForm(),

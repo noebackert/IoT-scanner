@@ -9,6 +9,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 import os
 from dotenv import load_dotenv
+from sqlalchemy import event
+from sqlalchemy.sql import func
 
 # Initializes a database object that enables interaction with the database using SQLAlchemy's functionalities.
 db = SQLAlchemy()
@@ -53,6 +55,7 @@ class Device(db.Model):
     version = db.Column(db.String(50), nullable=True)
     is_online = db.Column(db.Boolean, default=True)
     avg_ping = db.Column(db.Float, default=0)
+    average_data_rate = db.Column(db.Float, nullable=False)
     selected = db.Column(db.Boolean, default=False)
     
 class Monitoring(db.Model):
@@ -105,6 +108,11 @@ class Anomaly(db.Model):
     file_path = db.Column(db.String(255), nullable=False)
     date = db.Column(db.DateTime, nullable=False)
 
+class DataRate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    device_id = db.Column(db.Integer, db.ForeignKey('device.id'), nullable=False)
+    rate = db.Column(db.Float, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
 
 def create_admin():
     """Create an admin user."""
@@ -122,7 +130,26 @@ def create_hotspot_device():
     # Create a hotspot device if one doesn't exist
     new_device=Device.query.filter_by(mac=os.getenv("HOTSPOT_MAC")).first()
     if not new_device:
-        new_device = Device(name=os.getenv("HOTSPOT_SSID"), ipv4=os.getenv("HOTSPOT_IPV4"), mac=os.getenv("HOTSPOT_MAC"), vendor=os.getenv("HOTSPOT_VENDOR"))
+        new_device = Device(name=os.getenv("HOTSPOT_SSID"), ipv4=os.getenv("HOTSPOT_IPV4"), mac=os.getenv("HOTSPOT_MAC"), vendor=os.getenv("HOTSPOT_VENDOR"), average_data_rate=0)
         db.session.add(new_device)
         db.session.commit()
         print("Hotspot device created successfully!")
+
+@event.listens_for(DataRate, 'after_insert')
+def update_average_data_rate(mapper, connection, target):
+    """
+    Triggered after a new DataRate is inserted.
+    Updates the average data rate for the associated Device.
+    """
+    # SQLAlchemy Core query to calculate the average
+    avg_rate = connection.execute(
+        db.select(func.avg(DataRate.rate))
+        .where(DataRate.device_id == target.device_id)
+    ).scalar()
+    
+    # Update the Device table with the calculated average
+    connection.execute(
+        db.update(Device)
+        .where(Device.id == target.device_id)
+        .values(average_data_rate=avg_rate)
+    )
