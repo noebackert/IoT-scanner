@@ -21,5 +21,15 @@ docker compose up --build # build the docker of the IDS
 3. Capture packets (live capture, number of packets or time-based)
 
 
+## How to test functionalty:
+
+1. Port Scan detection:
+    nmap TARGET_IP 
+2. Ping flood DoS detection:
+    hping3 -1 -a SPOOFED_IP TARGET_IP --flood
+3. SYN flood DoS detection
+    sudo hping3 -S -p TARGET_PORT -a FAKE_IP --flood TARGET_IP
+
+
 # Author
 [Noé Backert](mailto:noe.backert@gmail.com)
