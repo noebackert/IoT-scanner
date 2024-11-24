@@ -5,7 +5,10 @@ from .models.logging_config import setup_logging
 from sqlalchemy import cast, String
 from sqlalchemy.dialects.postgresql import INET
 import json
+import pytz
+import os
 
+LOCALISATION = os.getenv('LOCALISATION', 'America/Montreal')
 logger = setup_logging()
 
 
@@ -45,9 +48,13 @@ def update_content(content):
     """
     Update the content of the pages.
     """
+    tz = pytz.timezone(LOCALISATION)
+
     devices = Device.query.order_by(cast(Device.ipv4, INET)).all()
     content['devices'] = [d for d in devices]
     content['logs'] = db.session.query(Capture, Device).join(Device).all()
+    for i in range(0, len(content['logs'])):
+        content['logs'][i].Capture.date = content['logs'][i].Capture.date.astimezone(tz).strftime('%Y-%m-%d %H:%M:%S')
     content['selected_devices'] = [d for d in devices if d.selected]
     return content
 

@@ -58,23 +58,16 @@ License: check the LICENSE file.
                 <!-- Alert messages (flashes) -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
-                    <div class=text-center mb-4>
-                    {% for category, message in messages %}
-                    {% if category.lower() == "success" %}
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {% elif category.lower() == "error" %}
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        {% endif %}
-                <strong>{{ category }}:</strong> {{ message }}
-                        <button type="button" class="btn-close" data-dismiss="alert" aria-label="Close">
-                          <span aria-hidden="true"></span>
-                        </button>
-                    </div>
-                    {% endfor %}
+                    <div class="text-center mb-4">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category|lower }} alert-dismissible fade show" role="alert">
+                                <strong>{{ category.capitalize() }}:</strong> {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
                     </div>
                 {% endif %}
-                {% endwith %}
-
+            {% endwith %}
                 <!-- Content added by the user -->
                 {% block content %}
                 {% endblock %}

@@ -2,80 +2,179 @@
 {% block title %}Hotspot{% endblock %}
 {% block content %}
 
-<!-- refresh the page every 3 sec -->
-<meta http-equiv="refresh" content="3">
 <div class="container p-5 my-5">
     <!-- Main Title -->
     <h1 class="text-center">Hotspot</h1>
-    <!-- Description -->
 
+    <!-- Description -->
     <div class="container p-5 my-5 border bg-light">
-        <p class="lead">
-            Hotspot scan:
-        </p>
-        <form method="POST" action="{{ url_for('blueprint.hotspot') }}">
-            {{ content['form'].hidden_tag() }}
-            <button type="submit" class="btn btn-primary mt-3">Scan new devices</button>
+        <p class="lead">Hotspot scan:</p>
+        <form method="POST" id="scanForm">
+            <button id="scanButton" type="submit" class="btn btn-primary mt-3">Scan new devices</button>
         </form>
     </div>
+
 
     <h3 class="mt-5 text-center">Connected Devices:</h3>
 
     <div class="container p-5 my-5 border bg-light">
         <p class="lead" id="deviceList">
-            {% if content["devices"] %}
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Action</th>
-                            <th>Name</th>
-                            <th>IPV4</th>
-                            <th>IPV6</th>
-                            <th>MAC Address</th>
-                            <th>Vendor</th>
-                            <th>Model</th>
-                            <th>Version</th>
-                            <th>Status</th>
-                            <th>Avg Ping</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for device in content["devices"] %}
-                            <tr>
-                                <td>
-                                    {% if device['id']!= 1%}
-                                    <a href="{{ url_for('blueprint.delete_device', device_id=device['mac']) }}">
-                                        <button class="btn btn-danger">Delete</button>
-                                    </a>
-                                   
-                                    <a href="{{ url_for('blueprint.edit_device', device_id=device['mac']) }}">
-                                        <button class="btn btn-primary">Edit</button>
-                                    </a>
-                                    {% else %}
-                                    <strong>Hotspot</strong>
-                                    {% endif %}
-                                   
-                                </td>
-                                <td>{{ device['name'] if device['name']!= Null else 'No name'}}</td>
-                                <td>{{ device['ipv4'] }}</td>
-                                <td>{{ device['ipv6'] if device['name']!=Null else "No IPV6"}}</td>
-                                <td>{{ device['mac'] }}</td>
-                                <td>{{ device['vendor'] if device['name']!=Null else "No vendor"}}</td>
-                                <td>{{ device['model'] if device['name']!=Null else "No model"}}</td>
-                                <td>{{ device['version'] if device['name']!=Null else "No version"}}</td>
-                                <td>{{ "Connected" if device['is_online'] else "Disconnected" }}</td>
-                                <td> {{ "{:.2f}".format(device['avg_ping']) ~ ' ms' if device['name']!=Null else "No ping" }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                No devices found.
-            {% endif %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th>Name</th>
+                        <th>IPV4</th>
+                        <th>IPV6</th>
+                        <th>MAC Address</th>
+                        <th>Vendor</th>
+                        <th>Model</th>
+                        <th>Version</th>
+                        <th>Status</th>
+                        <th>Avg Ping</th>
+                    </tr>
+                </thead>
+                <tbody id="devicesTable">
+                    <!-- Rows will be dynamically updated -->
+                </tbody>
+            </table>
         </p>
     </div>
 </div>
 
+<script>
+    // Pre-render the base URLs using Flask's `url_for`
+    const deleteDeviceBaseUrl = "{{ url_for('blueprint.delete_device', device_id='') }}";
+    const editDeviceBaseUrl = "{{ url_for('blueprint.edit_device', device_id='') }}";
+</script>
+
+
+<script>
+    function fetchData() {
+        fetch("{{ url_for('blueprint.get_data') }}")
+            .then(response => response.json())
+            .then(devices => {
+                const tableBody = document.getElementById('devicesTable');
+                tableBody.innerHTML = ''; // Clear the table
+
+                devices.forEach(device => {
+                    const row = `
+                        <tr>
+                            <td>
+                                ${
+                                    device.id !== 1
+                                        ? `
+                                            <a href="${deleteDeviceBaseUrl}${encodeURIComponent(device.mac)}">
+                                                <button class="btn btn-danger">Delete</button>
+                                            </a>
+                                            <a href="${editDeviceBaseUrl}${encodeURIComponent(device.mac)}">
+                                                <button class="btn btn-primary">Edit</button>
+                                            </a>
+                                        `
+                                        : `<strong>Hotspot</strong>`
+                                }
+                            </td>
+                            <td>${device.name || 'No name'}</td>
+                            <td>${device.ipv4 || 'No IPV4'}</td>
+                            <td>${device.ipv6 || 'No IPV6'}</td>
+                            <td>${device.mac || 'No MAC'}</td>
+                            <td>${device.vendor || 'No vendor'}</td>
+                            <td>${device.model || 'No model'}</td>
+                            <td>${device.version || 'No version'}</td>
+                            <td>${device.is_online ? 'Connected' : 'Disconnected'}</td>
+                            <td>${device.avg_ping !== null ? `${device.avg_ping.toFixed(2)} ms` : 'No ping'}</td>
+                        </tr>
+                    `;
+                    tableBody.insertAdjacentHTML('beforeend', row);
+                });
+            })
+            .catch(error => console.error('Error fetching ping data:', error));
+    }
+
+    setInterval(fetchData, 5000);
+    fetchData();
+</script>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("scanForm");
+        const button = document.getElementById("scanButton");
+        const resultsDiv = document.getElementById("scanResults");
+        const tableBody = document.getElementById("devicesTable");
+
+        // Define the updateScanResults function outside the event listener
+        async function updateScanResults() {
+            try {
+                const response = await fetch("{{ url_for('blueprint.scan') }}", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({}) // Add any scan-specific parameters here if needed
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch scan results.");
+                }
+
+                const devices = await response.json();
+                tableBody.innerHTML = ""; // Clear the table
+
+                devices.forEach(device => {
+                    const row = `
+                        <tr>
+                            <td>
+                                ${
+                                    device.id !== 1
+                                        ? `
+                                            <a href="${deleteDeviceBaseUrl}${encodeURIComponent(device.mac)}">
+                                                <button class="btn btn-danger">Delete</button>
+                                            </a>
+                                            <a href="${editDeviceBaseUrl}${encodeURIComponent(device.mac)}">
+                                                <button class="btn btn-primary">Edit</button>
+                                            </a>
+                                        `
+                                        : `<strong>Hotspot</strong>`
+                                }
+                            </td>
+                            <td>${device.name || "No name"}</td>
+                            <td>${device.ipv4 || "No IPV4"}</td>
+                            <td>${device.ipv6 || "No IPV6"}</td>
+                            <td>${device.mac || "No MAC"}</td>
+                            <td>${device.vendor || "No vendor"}</td>
+                            <td>${device.model || "No model"}</td>
+                            <td>${device.version || "No version"}</td>
+                            <td>${device.is_online ? "Connected" : "Disconnected"}</td>
+                            <td>${device.avg_ping !== null ? `${device.avg_ping.toFixed(2)} ms` : "No ping"}</td>
+                        </tr>
+                    `;
+                    tableBody.insertAdjacentHTML("beforeend", row);
+                });
+            } catch (error) {
+                console.error(error);
+                resultsDiv.innerHTML = `<p class="text-danger">Error: Could not complete the scan.</p>`;
+            } finally {
+                // Re-enable the button and restore its text
+                button.innerHTML = "Scan Devices";
+                button.disabled = false;
+                location.reload();
+            }
+        }
+
+        // Event listener for form submission
+        form.addEventListener("submit", function (event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            // Show loading spinner and disable the button
+            button.innerHTML = `
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Scanning...
+            `;
+            button.disabled = true;
+
+            // Call the scan function
+            updateScanResults();
+        });
+    });
+</script>
 
 {% endblock %}
-
