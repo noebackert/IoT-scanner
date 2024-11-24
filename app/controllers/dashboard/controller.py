@@ -8,7 +8,9 @@ from ...utils import update_avg_ping, update_content, load_config
 from ...models.sniffer import Sniffer
 import os
 from datetime import datetime
+import pytz
 
+LOCALISATION = os.getenv('LOCALISATION', 'America/Montreal')
 interface = os.environ.get('INTERFACE', 'wlan1')
 path_to_sniffer = "sniffer.pcap"
 logger = setup_logging()
@@ -52,9 +54,14 @@ def get_data_rate():
     Get the data rate of the devices.
     """
     mean_data_rate = Device.query.filter_by(id=1).first().average_data_rate
-    data_rates = DataRate.query.order_by(DataRate.date.desc()).all()
+    data_rates = DataRate.query.order_by(DataRate.date.desc()).limit(10)
+    # labels to local time
+    montreal_tz = pytz.timezone(LOCALISATION)
+
+    labels = [dr.date.astimezone(montreal_tz).strftime('%H:%M:%S') for dr in data_rates]
+
     data_rate_chart_data = {
-        'labels': [dr.date.strftime('%Y-%m-%d %H:%M:%S') for dr in data_rates],
+        'labels': labels,
         'data': [dr.rate for dr in data_rates],
         'average': mean_data_rate
     }
