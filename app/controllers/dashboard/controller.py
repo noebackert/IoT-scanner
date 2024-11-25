@@ -50,7 +50,7 @@ def get_data_rate():
     Get the data rate of the devices.
     """
     mean_data_rate = Device.query.filter_by(id=1).first().average_data_rate
-    data_rates = DataRate.query.order_by(DataRate.date.desc()).limit(10)
+    data_rates = DataRate.query.filter_by(device_id=1).order_by(DataRate.date.desc()).limit(10)
     montreal_tz = pytz.timezone(LOCALISATION)
     labels = [dr.date.astimezone(montreal_tz).strftime('%H:%M:%S') for dr in data_rates]
     data_rate_chart_data = {
@@ -59,3 +59,21 @@ def get_data_rate():
         'average': mean_data_rate
     }
     return jsonify(data_rate_chart_data)
+
+
+@login_required
+def get_anomalies():
+    """
+    Get the anomalies of the devices.
+    """    
+    anomalies = Anomaly.query.order_by(Anomaly.date.desc()).all()
+    tz = pytz.timezone(LOCALISATION) 
+    anomalies_json = [
+        {
+            'id': a.id,
+            'anomaly_type': a.anomaly_type,
+            'threat_level': a.threat_level,
+            'date': a.date.astimezone(tz).strftime('%Y-%m-%d %H:%M:%S')
+        } for a in anomalies
+    ]
+    return jsonify(anomalies_json)
