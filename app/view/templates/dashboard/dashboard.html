@@ -18,6 +18,62 @@ License: check the LICENSE file.
         justify-content: center; /* Centers the chart horizontally */
     }
 </style>
+<style>
+    .slider-container {
+        width: 100%;  /* Set the container width to 100% */
+        max-width: 100%;  /* Ensure no max width restriction */
+    }
+    input[type="range"] {
+        width: 100%;  /* Make the slider take the full width of the container */
+        -webkit-appearance: none;  /* Remove default styling on some browsers */
+        appearance: none;
+        background: #ddd;
+        border-radius: 5px;  /* Optional: rounded corners for the slider */
+    }
+
+    /* Optional: Style the thumb of the slider */
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #FF6384;  /* Thumb color */
+        cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #FF6384;
+        cursor: pointer;
+    }
+</style>
+
+<head>
+    <script>
+        // Update the slider value and autosubmit the form
+        function updateSlider(value) {
+            document.getElementById('slider').value = value;
+            document.getElementById('slider_display').innerText = value;
+            const percentage = (value-{{ content['min'] }}) / ({{ content['max'] }}-{{ content['min'] }});
+            slider.style.background = `linear-gradient(to right, #ffb1c2 0%, #ffb1c2 ${percentage*100}%, #ddd ${percentage*100}%, #ddd 100%)`;
+        
+        }
+
+        // Autosubmit the form when the slider is released
+        function submitOnRelease() {
+            document.querySelector('form').submit();
+        }
+            // Set initial background color when the page loads
+        window.addEventListener('load', () => {
+            const slider = document.getElementById("slider");
+            updateSlider(slider.value);
+        });
+
+    </script>
+</head>
 <div class="dashboard-container">
     <h1 class="text-center p-2">IDS Dashboard</h1>
     
@@ -29,6 +85,33 @@ License: check the LICENSE file.
                     <figure>
                         <canvas id="dataRateChart"></canvas>
                     </figure>
+                    
+                    <div class="slider-container">
+                        <form method="POST">
+                            {{ content["form"].hidden_tag() }}
+                            <input 
+                                type="range" 
+                                id="slider" 
+                                name="slider" 
+                                min="{{ content['min'] }}"
+                                max="{{ content['max'] }}"
+                                value="{{ content['form'].slider.data }}" 
+                                oninput="updateSlider(this.value)"
+                                onchange="submitOnRelease()"
+                            >
+                            <span id="slider_display">{{ content["form"].slider.data }}</span>
+                    
+                            <!-- Hidden field to send the value -->
+                            <input 
+                                type="hidden" 
+                                id="slider" 
+                                name="slider" 
+                                value="{{ content['form'].slider.data }}"
+                            >
+                        </form>
+                    </div>
+                   
+                   
                 </div>
             </div>
             <div class="col-md-4">
@@ -115,14 +198,26 @@ License: check the LICENSE file.
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<script type="module" src="../../../assets/js/custom/chart.js"></script>
 <script type="module">
     import { renderAnomaliesChart, renderDataRateChart } from '../../../assets/js/custom/chart.js';
+    
     const refreshInterval = {{ content.data_rate_refresh | tojson }};
+    
     document.addEventListener('DOMContentLoaded', () => {
-        renderAnomaliesChart("{{ url_for('blueprint.get_anomalies') }}", 'anomaliesChart', refreshInterval);
-        renderDataRateChart("{{ url_for('blueprint.get_data_rate') }}", 'dataRateChart', refreshInterval);
-    }); 
+        const batchSize = {{ content.form.slider.data | tojson }};  // Serialize the value correctly
+        console.log('Batch Size:', batchSize);  // Test the value
+        renderAnomaliesChart(
+            "{{ url_for('blueprint.get_anomalies') }}", 
+            'anomaliesChart', 
+            refreshInterval
+        );
+        renderDataRateChart(
+            "{{ url_for('blueprint.get_data_rate') }}", 
+            'dataRateChart', 
+            refreshInterval,
+            batchSize
+        );
+    });
 </script>
 
 {% endblock %}

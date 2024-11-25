@@ -73,13 +73,13 @@ export async function renderAnomaliesChart(apiUrl, canvasId, refreshInterval) {
     setInterval(updateAnomaliesChart, refreshInterval * 1000);
 }
 
-export async function renderDataRateChart(apiUrl, canvasId, refreshInterval) {
+export async function renderDataRateChart(apiUrl, canvasId, refreshInterval, batchSize) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     let dataRateChart = null;
-
+    console.log("batchSize", batchSize);
     async function updateDataRateChart() {
         try {
-            const response = await fetch(apiUrl);
+            const response = await fetch(`${apiUrl}?batch=${encodeURIComponent(batchSize)}`);
             const result = await response.json();
 
     
