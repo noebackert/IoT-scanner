@@ -300,7 +300,6 @@ class SnifferDataRate(Thread):
                     prn=self.packet_callback,
                     timeout=self.capture_duration # Sniff for 1 second, then re-check events
                 )
-                self.logger.info(f"[*] Data rate: {self.data_rate}")
                 self.upload_data_rate()
                 self.data_rate = {}
                 self.total_data_rate = 0
@@ -326,6 +325,3 @@ class SnifferDataRate(Thread):
             db.session.add(new_data_rate)
             db.session.commit()
     
-    def change_capture_duration(self, duration):
-        self.capture_duration = duration
-        self.logger.info(f"[!] New capture duration: {duration}")

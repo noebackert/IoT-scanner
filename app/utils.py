@@ -16,6 +16,11 @@ def load_config():
     with open('config.json') as config_file:
         return json.load(config_file)
 
+def save_config(config):
+    with open('config.json', 'w') as config_file:
+        json.dump(config, config_file, indent=4)
+
+
 def with_app_context(func):
     """A decorator to push the Flask app context to threaded functions."""
     def wrapper(*args, **kwargs):

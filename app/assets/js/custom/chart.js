@@ -1,9 +1,11 @@
 export async function renderAnomaliesChart(apiUrl, canvasId, refreshInterval) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     let anomaliesChart = null;
-
+    let isUpdating = false;
     async function updateAnomaliesChart() {
         try {
+            if (isUpdating) return;
+            isUpdating = true;        
             const response = await fetch(apiUrl);
             const data = await response.json();
 
@@ -16,6 +18,12 @@ export async function renderAnomaliesChart(apiUrl, canvasId, refreshInterval) {
             // Prepare data for Chart.js
             const labels = Object.keys(anomalyCounts);
             const values = Object.values(anomalyCounts);
+
+                // Handle the case where there is no data
+            if (labels.length === 0 || values.length === 0) {
+                labels.push('No Data');
+                values.push(1); // Assign a value to make the chart render
+            }
 
             if (anomaliesChart) {
                 // Update the chart data
@@ -64,6 +72,8 @@ export async function renderAnomaliesChart(apiUrl, canvasId, refreshInterval) {
             }
         } catch (error) {
             console.error('Error updating Anomalies Chart:', error);
+        } finally {
+            isUpdating = false;
         }
     }
 
@@ -76,10 +86,13 @@ export async function renderAnomaliesChart(apiUrl, canvasId, refreshInterval) {
 export async function renderDataRateChart(apiUrl, canvasId, refreshInterval, batchSize) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     let dataRateChart = null;
+    let isUpdating = false;
     console.log("batchSize", batchSize);
-    async function updateDataRateChart() {
+    async function updateDataRateChart(batch) {
         try {
-            const response = await fetch(`${apiUrl}?batch=${encodeURIComponent(batchSize)}`);
+            if (isUpdating) return;
+            isUpdating = true;
+            const response = await fetch(`${apiUrl}?batch=${encodeURIComponent(batch)}`);
             const result = await response.json();
 
     
@@ -147,11 +160,13 @@ export async function renderDataRateChart(apiUrl, canvasId, refreshInterval, bat
             }
         } catch (error) {
             console.error('Error updating Data Rate Chart:', error);
+        } finally {
+            isUpdating = false;
         }
     }
 
     // Initial render and periodic updates
-    await updateDataRateChart();
+    await updateDataRateChart(batchSize);
 
-    setInterval(updateDataRateChart, refreshInterval * 1000);
+    setInterval(() => updateDataRateChart(batchSize), refreshInterval * 1000);
 }

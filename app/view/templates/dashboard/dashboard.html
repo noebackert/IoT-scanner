@@ -56,7 +56,6 @@ License: check the LICENSE file.
         // Update the slider value and autosubmit the form
         function updateSlider(value) {
             document.getElementById('slider').value = value;
-            document.getElementById('slider_display').innerText = value;
             const percentage = (value-{{ content['min'] }}) / ({{ content['max'] }}-{{ content['min'] }});
             slider.style.background = `linear-gradient(to right, #ffb1c2 0%, #ffb1c2 ${percentage*100}%, #ddd ${percentage*100}%, #ddd 100%)`;
         
@@ -81,7 +80,7 @@ License: check the LICENSE file.
         <div class="row">
             <div class="col-md-4">
                 <div class="card">
-                    <h3 class="card-title text-center">Global Data Rate </h3>
+                    <h4 class="card-title text-center">Global Data Rate - refresh {{content.data_rate_refresh}} s</h4>
                     <figure>
                         <canvas id="dataRateChart"></canvas>
                     </figure>
@@ -99,7 +98,6 @@ License: check the LICENSE file.
                                 oninput="updateSlider(this.value)"
                                 onchange="submitOnRelease()"
                             >
-                            <span id="slider_display">{{ content["form"].slider.data }}</span>
                     
                             <!-- Hidden field to send the value -->
                             <input 
@@ -200,9 +198,9 @@ License: check the LICENSE file.
 
 <script type="module">
     import { renderAnomaliesChart, renderDataRateChart } from '../../../assets/js/custom/chart.js';
-    
+
     const refreshInterval = {{ content.data_rate_refresh | tojson }};
-    
+    console.log('Refresh Interval:', refreshInterval);  // Test the value
     document.addEventListener('DOMContentLoaded', () => {
         const batchSize = {{ content.form.slider.data | tojson }};  // Serialize the value correctly
         console.log('Batch Size:', batchSize);  // Test the value

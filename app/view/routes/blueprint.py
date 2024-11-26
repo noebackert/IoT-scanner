@@ -2,7 +2,7 @@
 Configures the address paths (URL routes)
 """
 from flask import Blueprint
-from ...controllers.controller import index, login, register, logout, about
+from ...controllers.controller import index, login, register, logout, about, settings
 from ...controllers.user_profile.controller import user_profile, modify_password
 from ...controllers.hotspot.controller import hotspot, edit_device, delete_device, get_data, scan
 from ...controllers.capture.controller import capture, log, delete_log
@@ -16,6 +16,7 @@ blueprint.route('/login', methods=['GET', 'POST'])(login)
 blueprint.route('/register', methods=['GET', 'POST'])(register)
 blueprint.route('/about', methods=['GET', 'POST'])(about)
 blueprint.route('/logout', methods=['GET', 'POST'])(logout)
+blueprint.route('/settings', methods=['GET', 'POST'])(settings)
 
 # User Profile
 blueprint.route('/user_profile/user_profile', methods=['GET', 'POST'])(user_profile)

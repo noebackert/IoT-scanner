@@ -1,0 +1,52 @@
+<!-- 
+This file is part of PyFlaSQL.
+Original author: Noé Backert (noe.backert@gmail.com)
+License: check the LICENSE file.
+-->
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<div class="container my-2">
+    <!-- Main Title -->
+    <h1 class="text-center">Settings</h1>
+    <div class="container p-5 my-3 border">
+        <!-- Description -->
+        <form method="POST">
+            {{ content["form"].hidden_tag() }}
+            <p class="lead">
+                {{content["form"].refreshRate.label}} 
+                {{content["form"].refreshRate(class="form-control")}}
+            </p>
+            <p class="lead">
+                {{content["form"].dosThreshold.label}}
+                {{content["form"].dosThreshold(class="form-control")}}
+            </p>
+            <p class="lead">
+                {{content["form"].dosStopThreshold.label}}
+                {{content["form"].dosStopThreshold(class="form-control")}}
+            </p>
+            <p class="lead">
+                {{content["form"].dosQueueSize.label}}
+                {{content["form"].dosQueueSize(class="form-control")}}
+            </p>
+            <p class="lead">
+                {{content["form"].portScanThreshold.label}}
+                {{content["form"].portScanThreshold(class="form-control")}}
+            </p>
+            <p class="lead">
+                {{content["form"].timeToWaitAfterAnomaliesPortScan.label}}
+                {{content["form"].timeToWaitAfterAnomaliesPortScan(class="form-control")}}
+            </p>
+            <p class="lead">
+                {{content["form"].timeToWaitAfterAnomaliesDos.label}}
+                {{content["form"].timeToWaitAfterAnomaliesDos(class="form-control")}}
+            </p>
+            <p class="lead">
+                {{content["form"].submit(class="btn btn-primary")}}
+            </p>
+        </form>
+    </div>
+
+</div>
+{% endblock %}
+

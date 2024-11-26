@@ -3,10 +3,15 @@ Business logic for the main application
 """
 from flask import Flask, render_template, url_for, redirect, flash
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
-
+from ..models.settings import SettingsForm
 from ..models.sql import db, bcrypt, UserDB
 from ..models.auth import LoginForm, RegisterForm
 from functools import wraps
+from ..utils import setup_logging
+
+
+logger = setup_logging()
+
 
 def admin_required(func):
     """A decorator to check if the user is an admin."""
@@ -114,3 +119,40 @@ def register():
         flash('The new account has been created! You are now able to log in', 'Success')        
         return redirect(url_for('blueprint.login'))
     return render_template('register.html', form=form, username=current_user.username)
+
+@admin_required
+def settings():
+    """
+        Handles the logic for /settings page
+        Login is required to view this page.
+
+        Args:
+            - None.
+
+        Returns:
+            - rendered settings.html template
+        """
+    content = {
+        "form": SettingsForm(),
+    }
+    if content["form"].validate_on_submit():
+        from ..utils import save_config
+        configJson = {
+                        "IDS_settings": {
+                            "PORT_SCAN_THRESHOLD": content["form"].data["portScanThreshold"],
+                            "DOS_THRESHOLD": content["form"].data["dosThreshold"],
+                            "DOS_STOP_THRESHOLD": content["form"].data["dosStopThreshold"],
+                            "DOS_QUEUE_SIZE": content["form"].data["dosQueueSize"],
+                            "TimeToWaitAfterAnomalies":
+                            {
+                                "PORT_SCAN": content["form"].data["timeToWaitAfterAnomaliesPortScan"],
+                                "DOS": content["form"].data["timeToWaitAfterAnomaliesDos"]
+                            }
+                        },
+                        "Data_rate": {
+                            "Refresh_global_data_rate": content["form"].data["refreshRate"]
+                        }
+                    }
+        save_config(configJson)
+        flash('Settings saved!', 'success')
+    return render_template('settings.html', content = content, username=current_user.username)

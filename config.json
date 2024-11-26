@@ -4,8 +4,7 @@
         "DOS_THRESHOLD": 20,
         "DOS_STOP_THRESHOLD": 50,
         "DOS_QUEUE_SIZE": 1000,
-        "TimeToWaitAfterAnomalies":
-        {
+        "TimeToWaitAfterAnomalies": {
             "PORT_SCAN": 10,
             "DOS": 10
         }

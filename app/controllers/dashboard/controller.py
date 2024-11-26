@@ -67,7 +67,7 @@ def get_data_rate():
     data_rates_batches = [data_rates[i:i+batch_size] for i in range(0, len(data_rates), batch_size)]
     data_rates_mean = [sum([dr.rate for dr in data_rate_batch])/len(data_rate_batch) for data_rate_batch in data_rates_batches]
     montreal_tz = pytz.timezone(LOCALISATION)
-    labels = [dr.date.astimezone(montreal_tz).strftime('%H:%M:%S') for dr in data_rates]
+    labels = [dr.date.astimezone(montreal_tz).strftime('%H:%M:%S %m/%d/%y') for dr in data_rates]
     labels_batches = [labels[i] for i in range(0, len(labels), batch_size)]
     if batch_size > 1:
         data_rate_chart_data = {
