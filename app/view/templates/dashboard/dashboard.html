@@ -21,8 +21,9 @@ License: check the LICENSE file.
 
     .card {
         width: auto;
-        height: 380px;
     }
+
+    
 </style>
 <style>
     .slider-container {
@@ -83,47 +84,86 @@ License: check the LICENSE file.
     <h1 class="text-center p-2">IDS Dashboard</h1>
     
     <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card">
-                    <h4 class="card-title text-center">Global Data Rate - refresh {{content.data_rate_refresh}} s</h4>
-                    <figure>
-                        <canvas id="dataRateChart"></canvas>
-                    </figure>
+        <div class="col d-flex align-items-stretch"> <!-- Add d-flex and align-items-stretch here -->
+            <div class="col-md-8">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <h4 class="card-title text-center">Global Data Rate - refresh {{content.data_rate_refresh}} s</h4>
+                            <figure>
+                                <canvas id="dataRateChart"></canvas>
+                            </figure>
+                            
+                            <div class="slider-container">
+                                <form method="POST">
+                                    {{ content["form"].hidden_tag() }}
+                                    <input 
+                                        type="range" 
+                                        id="slider" 
+                                        name="slider" 
+                                        min="{{ content['min'] }}"
+                                        max="{{ content['max'] }}"
+                                        value="{{ content['form'].slider.data }}" 
+                                        oninput="updateSlider(this.value)"
+                                        onchange="submitOnRelease()"
+                                    >
+                                    <!-- Hidden field to send the value -->
+                                    <input 
+                                        type="hidden" 
+                                        id="slider" 
+                                        name="slider" 
+                                        value="{{ content['form'].slider.data }}"
+                                    >
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                     
-                    <div class="slider-container">
-                        <form method="POST">
-                            {{ content["form"].hidden_tag() }}
-                            <input 
-                                type="range" 
-                                id="slider" 
-                                name="slider" 
-                                min="{{ content['min'] }}"
-                                max="{{ content['max'] }}"
-                                value="{{ content['form'].slider.data }}" 
-                                oninput="updateSlider(this.value)"
-                                onchange="submitOnRelease()"
-                            >
-                    
-                            <!-- Hidden field to send the value -->
-                            <input 
-                                type="hidden" 
-                                id="slider" 
-                                name="slider" 
-                                value="{{ content['form'].slider.data }}"
-                            >
-                        </form>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <h4 class="card-title text-center">Anomalies Chart </h4>
+                            <figure>
+                                <canvas id="anomaliesChart"></canvas> 
+                            </figure>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        
+                        <div class="card">
+                            <div class="card-body">
+                                <h3 class="card-title text-center">Anomaly detected</h3>
+                                <div class="table-responsive"> <!-- Use table-responsive for horizontal scroll -->
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Type of anomaly</th>
+                                                <th>Filepath</th>
+                                                <th>Severity level</th>
+                                                <th>Severity label</th>
+                                                <th>Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for elt in content["anomalies"] %}
+                                            <tr>
+                                                <td>{{ elt.id }}</td>
+                                                <td>{{ elt.anomaly_type }}</td>
+                                                <td>{{ elt.file_path }}</td>
+                                                <td>{{ elt.threat_level }}</td>
+                                                <td>{{ elt.threat_label}}</td>
+                                                <td>{{ elt.date }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <h4 class="card-title text-center">Anomalies Chart </h3>
-                    <figure>
-                        <canvas id="anomaliesChart"></canvas> 
-                    </figure>
-                </div>
-            </div>
+            <!-- extend the column through the bottom of the page -->
             <div class="col-md-4">
                 <div class="card">
                     <h4 class="card-title text-center">Connected Devices</h4>
@@ -136,98 +176,30 @@ License: check the LICENSE file.
                                 <th>Data Rate</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for elt in content["devices"] %}
-                            <tr>
-                                <!-- green dot if online, red dot if offline -->
-                                <td>{% if elt.is_online %}<span style="color: green;">&#x25CF;</span>{% else %}<span style="color: red;">&#x25CF;</span>{% endif %}</td> 
-                                <td>{{ elt.name }}</td>
-                                <td>{{ elt.mac }}</td>
-                                <td></td>
-                            </tr>
-                            {% endfor %}
+    
+                        <tbody id="devicesTable">
+                            <!-- Rows will be dynamically updated -->
                         </tbody>
                     </table>
                     <figure>
                         <canvas id="connectedDevicesChart"></canvas>
                     </figure>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-md-4">
-            </div>
-            <div class="col-md-4">
-            </div>
-            <div class="col-md-4">
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-4">
-            </div>
-            <div class="col-md-4">
-            </div>
-            <div class="col-md-4">
-            </div>
+           
         </div>
     </div>
+    
 
    
     
-    <!-- Anomalies Types -->
-    <div class="card">
-        <div class="card-body">
-            <h3 class="card-title text-center">Anomaly detected</h3>
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Type of anomaly</th>
-                        <th>Filepath</th>
-                        <th>Severity level</th>
-                        <th>Severity label</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for elt in content["anomalies"] %}
-                    <tr>
-                        <td>{{ elt.id }}</td>
-                        <td>{{ elt.anomaly_type }}</td>
-                        <td>{{ elt.file_path }}</td>
-                        <td>{{ elt.threat_level }}</td>
-                        <td>{{ elt.threat_label}}</td>
-                        <td>{{ elt.date }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-    
-            </table>
-        </div>
-    </div>
-
-    <!-- Anomalies Severity -->
-    <div class="card">
-        <div class="card-body">
-            <h3 class="card-title text-center">Anomaly Severity</h3>
-            <p class="text-center">Severity of anomalies detected</p>
-            <ul class="list-group">
-            </ul>
-        </div>
-    </div>
-
-    <!-- Pie Chart -->
-    <div class="card">
-        <div class="card-body">
-            <h3 class="card-title text-center">Anomalies Distribution</h3>
-            <canvas id="anomaliesChart"></canvas>
-        </div>
-    </div>
+   
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script type="module">
-    import { renderAnomaliesChart, renderDataRateChart } from '../../../assets/js/custom/chart.js';
+    import { renderAnomaliesChart, renderDataRateChart, renderDataRateDevices, renderOneDeviceChart} from '../../../assets/js/custom/chart.js';
 
     const refreshInterval = {{ content.data_rate_refresh | tojson }};
     console.log('Refresh Interval:', refreshInterval);  // Test the value
@@ -245,7 +217,48 @@ License: check the LICENSE file.
             refreshInterval,
             batchSize
         );
+
+        function fetchData() {
+        fetch("{{ url_for('blueprint.get_data') }}")
+            .then(response => response.json())
+            .then(devices => {
+                const tableBody = document.getElementById('devicesTable');
+                tableBody.innerHTML = ''; // Clear the table
+
+                devices.forEach(device => {
+                    const row = `
+                        <tr>
+                            <td>${device.is_online ? '<span style="color: green;">&#x25CF;</span>' : '<span style="color: red;">&#x25CF;</span>'}</td>
+                            <td>${device.name || 'No name'}</td>
+                            <td>${device.mac || 'No MAC'}</td>
+                            <td><canvas id="deviceChart-${device.id}"></canvas></td>
+                        </tr>
+                    `;
+                    tableBody.insertAdjacentHTML('beforeend', row);
+                    renderDeviceChart(device.id)
+
+                });
+            })
+            .catch(error => console.error('Error fetching ping data:', error));
+    }
+
+    async function renderDeviceChart(deviceId, refreshInterval = 5000){
+        const canvasId = `deviceChart-${deviceId}`;
+        const apiUrl = `{{ url_for('blueprint.get_data_rate', device_id='') }}${deviceId}`;   
+        try {
+            
+            renderOneDeviceChart(apiUrl, canvasId, refreshInterval);
+            
+        } catch (error) {
+            console.error(`Error rendering chart for device ${deviceId}:`, error);
+        }
+    }
+
+    setInterval(fetchData, 5000);
+    fetchData();
     });
+    
+    
 </script>
 
 {% endblock %}

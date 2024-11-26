@@ -316,12 +316,18 @@ class SnifferDataRate(Thread):
 
     def upload_data_rate(self):
         with self.current_app.app_context():
-            for ipv4 in self.data_rate:
-                device = Device.query.filter_by(ipv4=ipv4).first()
-                if device:
-                    new_data_rate = DataRate(device_id=device.id, rate=self.data_rate[ipv4], date=datetime.now(pytz.timezone(LOCALISATION)))
-                    db.session.add(new_data_rate)
-            new_data_rate = DataRate(device_id=1, rate=self.total_data_rate, date=datetime.now(pytz.timezone(LOCALISATION)))
-            db.session.add(new_data_rate)
+            devices = Device.query.all()
+            for device in devices:
+                ipv4 = device.ipv4
+                if device.id != 1:
+                    # Check if the device is in the data_rate dictionary
+                    if ipv4 in self.data_rate:
+                        new_data_rate = DataRate(device_id=device.id, rate=self.data_rate[ipv4], date=datetime.now(pytz.timezone(LOCALISATION)))
+                        db.session.add(new_data_rate)
+                    else: # If the device is not in the dictionary, add 0
+                        new_data_rate = DataRate(device_id=device.id, rate=0, date=datetime.now(pytz.timezone(LOCALISATION)))
+                        db.session.add(new_data_rate)
+            new_total_data_rate = DataRate(device_id=1, rate=self.total_data_rate, date=datetime.now(pytz.timezone(LOCALISATION)))
+            db.session.add(new_total_data_rate)
             db.session.commit()
     

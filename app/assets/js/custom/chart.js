@@ -127,6 +127,8 @@ export async function renderDataRateChart(apiUrl, canvasId, refreshInterval, bat
                                 borderColor: 'rgba(255, 99, 132, 1)',
                                 borderDash: [5, 5],
                                 borderWidth: 2,
+                                pointRadius: 0,
+                                pointHoverRadius: 0, 
                                 fill: false,
                             }
                         ]
@@ -169,4 +171,107 @@ export async function renderDataRateChart(apiUrl, canvasId, refreshInterval, bat
     await updateDataRateChart(batchSize);
 
     setInterval(() => updateDataRateChart(batchSize), refreshInterval * 1000);
+}
+
+
+export async function renderDataRateDevices(deviceId) {
+    const canvasId = `deviceChart-${deviceId}`;
+    const apiUrl = `${apiUrls.getDataRate}?device_id=${deviceId}`;
+    try {
+        renderOneDeviceChart(apiUrl, canvasId, 5000);
+    } catch (error) {
+        console.error(`Error rendering chart for device ${deviceId}:`, error);
+    }
+}
+
+
+
+export async function renderOneDeviceChart(apiUrl, canvasId, refreshInterval) {
+    let dataRateChart = null;
+    let isUpdating = false;
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    async function updateOneDeviceChart() {
+        try {
+            if (isUpdating) return;
+            isUpdating = true;
+            const response = await fetch(apiUrl);
+            const result = await response.json();
+
+    
+            const dataRates = result.data; 
+            const labels = result.labels; 
+            const average = result.average;
+
+            if (dataRateChart) {
+                // Update the chart data
+                dataRateChart.data.labels = labels.reverse(); 
+                dataRateChart.data.datasets[0].data = dataRates.reverse();
+                dataRateChart.data.datasets[1].data = new Array(labels.length).fill(average); 
+                dataRateChart.update();
+            } else {
+                // Create the chart
+                dataRateChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels.reverse(), // Initial labels
+                        datasets: [
+                            {
+                                label: 'Data Rate (bytes/sec)',
+                                data: dataRates.reverse(), // Initial data
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                borderWidth: 2,
+                                fill: true,
+                            },
+                            {
+                                label: 'Average Data Rate',
+                                data: new Array(labels.length).fill(average),
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderDash: [5, 5],
+                                borderWidth: 1,
+                                fill: false,
+                                pointRadius: 0, 
+                                pointHoverRadius: 0, 
+
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                display: false,
+                                position: 'best',
+                            },
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                }
+                            }
+                        },
+                        animation: {
+                            duration: 0, // Disable animations
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error updating Data Rate Chart:', error);
+        } finally {
+            isUpdating = false;
+        }
+    }
+
+    // Update the chart periodically
+    updateOneDeviceChart();
+    setInterval(updateOneDeviceChart, refreshInterval);
 }

@@ -57,17 +57,26 @@ def get_data_rate():
     """
     Get the data rate of the devices.
     """
+    montreal_tz = pytz.timezone(LOCALISATION)
     if request.args.get('batch'):
         batch_size = int(request.args.get('batch'))
     else :
         batch_size = 1
-    mean_data_rate = Device.query.filter_by(id=1).first().average_data_rate
-    data_rates = DataRate.query.filter_by(device_id=1).order_by(DataRate.date.desc()).limit(10*batch_size)
+
+    if request.args.get('device_id'):
+        device_id = request.args.get('device_id')
+        data_rates = DataRate.query.filter_by(device_id=device_id).order_by(DataRate.date.desc()).limit(10*batch_size)
+        mean_data_rate = Device.query.filter_by(id=device_id).first().average_data_rate
+        labels = [dr.date.astimezone(montreal_tz).strftime('%H:%M:%S') for dr in data_rates]
+
+    else:
+        mean_data_rate = Device.query.filter_by(id=1).first().average_data_rate
+        data_rates = DataRate.query.filter_by(device_id=1).order_by(DataRate.date.desc()).limit(10*batch_size)
+        labels = [dr.date.astimezone(montreal_tz).strftime('%H:%M:%S %m/%d/%y') for dr in data_rates]
+
     data_rates = [dr for dr in data_rates]
     data_rates_batches = [data_rates[i:i+batch_size] for i in range(0, len(data_rates), batch_size)]
     data_rates_mean = [sum([dr.rate for dr in data_rate_batch])/len(data_rate_batch) for data_rate_batch in data_rates_batches]
-    montreal_tz = pytz.timezone(LOCALISATION)
-    labels = [dr.date.astimezone(montreal_tz).strftime('%H:%M:%S %m/%d/%y') for dr in data_rates]
     labels_batches = [labels[i] for i in range(0, len(labels), batch_size)]
     if batch_size > 1:
         data_rate_chart_data = {
