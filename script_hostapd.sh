@@ -142,14 +142,27 @@ fi
 # Apply the settings
 sudo sysctl -p
 
+
 # Step 6: Set NAT and Firewall Rules
 echo "Setting up iptables rules..."
 mkdir -p /etc/iptables
-iptables -t nat -F POSTROUTING #Clear the NAT table first
-iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
-iptables -A FORWARD -i wlan0 -o $interface -m state --state RELATED,ESTABLISHED -j ACCEPT
-iptables -A FORWARD -i $interface -o wlan0 -j ACCEPT
+
+# Check if the NAT rule already exists
+if ! iptables -t nat -C POSTROUTING -o wlan0 -j MASQUERADE 2>/dev/null; then
+  iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
+fi
+
+# Check if the FORWARD rule already exists
+if ! iptables -C FORWARD -i wlan0 -o $interface -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null; then
+  iptables -A FORWARD -i wlan0 -o $interface -m state --state RELATED,ESTABLISHED -j ACCEPT
+fi
+
+if ! iptables -C FORWARD -i $interface -o wlan0 -j ACCEPT 2>/dev/null; then
+  iptables -A FORWARD -i $interface -o wlan0 -j ACCEPT
+fi
+
 iptables-save > /etc/iptables/rules.v4
+
 
 # Install iptables-persistent for persistence
 export DEBIAN_FRONTEND=noninteractive
@@ -166,5 +179,4 @@ echo "Enabling netfilter-persistent and restarting services..."
 systemctl enable netfilter-persistent
 sudo systemctl restart hostapd
 sudo systemctl restart dnsmasq
-
 echo "Access Point setup completed. Interface $interface is now an AP with IP 192.168.10.1, while wlan0 uses DHCP for internet."

@@ -201,22 +201,18 @@ def delete_device():
         logger.info(f"Monitor to delete: {monitorToDelete}")
         for monitor in monitorToDelete:
             db.session.delete(monitor)
-            db.session.commit()
             logger.info(f"Monitor deleted: {monitor}")
         captureToDelete = Capture.query.filter_by(device_id=selected_device.id).all()
         for capture in captureToDelete:
             db.session.delete(capture)
-            db.session.commit()
             logger.info(f"Capture deleted: {capture}")
         anomaliesToDelete = Anomaly.query.filter_by(id_victim=selected_device.id).all()
         for anomaly in anomaliesToDelete:
             db.session.delete(anomaly)
-            db.session.commit()
             logger.info(f"Anomaly deleted: {anomaly}")
         dataRateToDelete = DataRate.query.filter_by(device_id=selected_device.id).all()
         for dataRate in dataRateToDelete:
             db.session.delete(dataRate)
-            db.session.commit()
             logger.info(f"DataRate deleted: {dataRate}")
         db.session.delete(selected_device)
         db.session.commit()

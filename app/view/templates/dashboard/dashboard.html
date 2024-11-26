@@ -13,17 +13,11 @@ License: check the LICENSE file.
         max-height: 300px; /* Limits the height to 300px */
     }
 
-
+    
     .card figure {
         display: flex;
         justify-content: center; /* Centers the chart horizontally */
     }
-
-    .card {
-        width: auto;
-    }
-
-    
 </style>
 <style>
     .slider-container {
@@ -84,9 +78,9 @@ License: check the LICENSE file.
     <h1 class="text-center p-2">IDS Dashboard</h1>
     
     <div class="container-fluid">
-        <div class="col d-flex align-items-stretch"> <!-- Add d-flex and align-items-stretch here -->
+        <div class="col d-flex align-items-stretch">
             <div class="col-md-8">
-                <div class="row">
+                <div class="row g-0">
                     <div class="col-md-6">
                         <div class="card">
                             <h4 class="card-title text-center">Global Data Rate - refresh {{content.data_rate_refresh}} s</h4>
@@ -132,7 +126,7 @@ License: check the LICENSE file.
                         <div class="card">
                             <div class="card-body">
                                 <h3 class="card-title text-center">Anomaly detected</h3>
-                                <div class="table-responsive"> <!-- Use table-responsive for horizontal scroll -->
+                                <div class="table-responsive" style="max-height: calc(100vh - 600px);  overflow-y: auto;">
                                     <table class="table table-striped">
                                         <thead>
                                             <tr>
@@ -165,25 +159,28 @@ License: check the LICENSE file.
             </div>
             <!-- extend the column through the bottom of the page -->
             <div class="col-md-4">
-                <div class="card">
+                <div class="card table-responsive" style="max-height: calc(100vh - 170px);  overflow-y: auto;">
                     <h4 class="card-title text-center">Connected Devices</h4>
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th> </th>
-                                <th>Name</th>
-                                <th>MAC Address</th>
-                                <th>Data Rate</th>
-                            </tr>
-                        </thead>
-    
-                        <tbody id="devicesTable">
-                            <!-- Rows will be dynamically updated -->
-                        </tbody>
-                    </table>
-                    <figure>
-                        <canvas id="connectedDevicesChart"></canvas>
-                    </figure>
+
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th> </th>
+                                    <th>Name</th>
+                                    <th>MAC Address</th>
+                                    <th>Data Rate</th>
+                                </tr>
+                            </thead>
+        
+                            <tbody id="devicesTable">
+                                <!-- Rows will be dynamically updated -->
+                            </tbody>
+                        </table>
+                        <figure>
+                            <canvas id="connectedDevicesChart"></canvas>
+                        </figure>
+                    </div> 
+                        
                 </div>
             </div>
            

@@ -89,5 +89,10 @@ docker compose up --build
     sudo hping3 -S -p TARGET_PORT -a FAKE_IP --flood TARGET_IP
 
 
+## Insert to db:
+INSERT INTO device (name, ipv4, ipv6, mac, vendor, model, version, is_online, avg_ping, average_data_rate)
+VALUES ('test', '192.168.10.3', NULL, '4A:42:42:42:42', 'Google', NULL, NULL, TRUE, 0, 0);
+
+
 # Author
 [Noé Backert](mailto:noe.backert@gmail.com)

@@ -136,6 +136,7 @@ export async function renderDataRateChart(apiUrl, canvasId, refreshInterval, bat
                     options: {
                         responsive: true,
                         maintainAspectRatio: true,
+                        aspectRatio: 2,
                         plugins: {
                             legend: {
                                 display: true,
@@ -239,6 +240,7 @@ export async function renderOneDeviceChart(apiUrl, canvasId, refreshInterval) {
                     options: {
                         responsive: true,
                         maintainAspectRatio: true,
+                        aspectRatio: 2,
                         plugins: {
                             legend: {
                                 display: false,
