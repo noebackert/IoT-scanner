@@ -237,7 +237,8 @@ def single_ping_check(device:Device):
             response = subprocess.run(["ping", "-c", "1", device.ipv4], stdout=output_file)
         is_online = response.returncode == 0
         ping = get_ping_from_file(file_name)
-        device.is_online = is_online
+        device_to_update = Device.query.filter_by(id=device.id).first()
+        device_to_update.is_online = is_online
         new_ping = Monitoring(device_id=device.id, ip=device.ipv4, ping=ping, date=datetime.now(tz=pytz.timezone(LOCALISATION)))
         db.session.add(new_ping)
         update_avg_ping()
@@ -247,17 +248,9 @@ def single_ping_check(device:Device):
 
 def monitor_ping_device(device:Device):
     """Monitor the connection of a device by pinging it."""
-    from app import pyflasql_obj
     while True:
-        with pyflasql_obj.myapp.app_context():
-            is_online = single_ping_check(device)
-            device.is_online = is_online
-            db.session.commit()
-            if not is_online:
-                logger.info(f"Device {device.ipv4} is offline. Stopping monitoring")
-                break
+            single_ping_check(device)
             time.sleep(5)  # Ping every 5 seconds
-    return is_online
 
 
 def get_ping_from_file(file:str):

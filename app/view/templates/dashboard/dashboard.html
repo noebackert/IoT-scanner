@@ -10,12 +10,18 @@ License: check the LICENSE file.
 <style>
     canvas {
         max-width: 100%; /* Prevents overflowing the parent */
-        max-height: 250px; /* Limits the height to 300px */
+        max-height: 300px; /* Limits the height to 300px */
     }
+
 
     .card figure {
         display: flex;
         justify-content: center; /* Centers the chart horizontally */
+    }
+
+    .card {
+        width: auto;
+        height: 380px;
     }
 </style>
 <style>
@@ -108,19 +114,43 @@ License: check the LICENSE file.
                             >
                         </form>
                     </div>
-                   
-                   
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card">
-                    <h3 class="card-title text-center">Anomalies Chart </h3>
+                    <h4 class="card-title text-center">Anomalies Chart </h3>
                     <figure>
                         <canvas id="anomaliesChart"></canvas> 
                     </figure>
                 </div>
             </div>
             <div class="col-md-4">
+                <div class="card">
+                    <h4 class="card-title text-center">Connected Devices</h4>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th> </th>
+                                <th>Name</th>
+                                <th>MAC Address</th>
+                                <th>Data Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for elt in content["devices"] %}
+                            <tr>
+                                <!-- green dot if online, red dot if offline -->
+                                <td>{% if elt.is_online %}<span style="color: green;">&#x25CF;</span>{% else %}<span style="color: red;">&#x25CF;</span>{% endif %}</td> 
+                                <td>{{ elt.name }}</td>
+                                <td>{{ elt.mac }}</td>
+                                <td></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <figure>
+                        <canvas id="connectedDevicesChart"></canvas>
+                    </figure>
             </div>
         </div>
         <div class="row">
