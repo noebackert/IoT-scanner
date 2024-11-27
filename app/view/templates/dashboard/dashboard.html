@@ -53,6 +53,7 @@ License: check the LICENSE file.
 </style>
 
 <head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <script>
         // Update the slider value and autosubmit the form
         function updateSlider(value) {
@@ -133,22 +134,13 @@ License: check the LICENSE file.
                                                 <th>ID</th>
                                                 <th>Type of anomaly</th>
                                                 <th>Filepath</th>
-                                                <th>Severity level</th>
-                                                <th>Severity label</th>
+                                                <th>Severity</th>
                                                 <th>Date</th>
+                                                <th>Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                                            {% for elt in content["anomalies"] %}
-                                            <tr>
-                                                <td>{{ elt.id }}</td>
-                                                <td>{{ elt.anomaly_type }}</td>
-                                                <td>{{ elt.file_path }}</td>
-                                                <td>{{ elt.threat_level }}</td>
-                                                <td>{{ elt.threat_label}}</td>
-                                                <td>{{ elt.date }}</td>
-                                            </tr>
-                                            {% endfor %}
+                                        <tbody id="anomaliesTable">
+                                            
                                         </tbody>
                                     </table>
                                 </div>
@@ -196,15 +188,13 @@ License: check the LICENSE file.
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script type="module">
-    import { renderAnomaliesChart, renderDataRateChart, renderDataRateDevices, fetchDataRatesDevices} from '../../../assets/js/custom/chart.js';
+    import { renderAnomalies, renderDataRateChart, renderDataRateDevices, fetchDataRatesDevices} from '../../../assets/js/custom/chart.js';
 
     const refreshInterval = {{ content.data_rate_refresh | tojson }};
     const refreshIntervalConnectedDevices = {{ content.data_rate_connected_devices_refresh | tojson }};
-    console.log('Refresh Interval:', refreshInterval);  // Test the value
     document.addEventListener('DOMContentLoaded', () => {
         const batchSize = {{ content.form.slider.data | tojson }};  // Serialize the value correctly
-        console.log('Batch Size:', batchSize);  // Test the value
-        renderAnomaliesChart(
+        renderAnomalies(
             "{{ url_for('blueprint.get_anomalies') }}", 
             'anomaliesChart', 
             refreshInterval
@@ -215,7 +205,7 @@ License: check the LICENSE file.
             refreshInterval,
             batchSize
         );
-
+      
         function fetchData() {
         fetch("{{ url_for('blueprint.get_data') }}")
             .then(response => response.json())
@@ -247,6 +237,27 @@ License: check the LICENSE file.
     });
     
     
+    window.toggleRead = function toggleRead(anomalyId) {
+        // Add your logic to handle marking as read
+        console.log(`Marking anomaly with ID ${anomalyId} as read.`);
+        const apiUrl = "{{ url_for('blueprint.toggle_read') }}";
+        fetch(`${apiUrl}?anomaly_id=${encodeURIComponent(anomalyId)}`);
+        setTimeout(() => {
+            window.location.reload();
+        }, 250);
+    }
+
+    window.deleteAnomaly = function deleteAnomaly(anomalyId) {
+        // Add your logic to handle deletion
+        console.log(`Deleting anomaly with ID ${anomalyId}.`);
+        const apiUrl = "{{ url_for('blueprint.delete_anomaly') }}";
+        fetch(`${apiUrl}?anomaly_id=${encodeURIComponent(anomalyId)}`);
+        // wait for 1 second before reloading the page
+        setTimeout(() => {
+            window.location.reload();
+        }, 250);
+
+    }
 </script>
 
 {% endblock %}

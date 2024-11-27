@@ -33,6 +33,7 @@ def log_anomaly(anomaly_type:str, anomaly_number:int, id_victim:int, attacker_id
         threat_label=labels[anomaly_threat_level],
         file_path=f"app/static/anomalies/{anomaly_type}/{anomaly_number}.pcap",
         date=datetime.now(pytz.timezone(LOCALISATION)),
+        read=False
     )
     db.session.add(anomaly)
     db.session.commit()

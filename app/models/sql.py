@@ -107,6 +107,7 @@ class Anomaly(db.Model):
     threat_label = db.Column(db.String(50), nullable=False)
     file_path = db.Column(db.String(255), nullable=False)
     date = db.Column(db.DateTime, nullable=False)
+    read = db.Column(db.Boolean, default=False)
 
 class DataRate(db.Model):
     id = db.Column(db.Integer, primary_key=True)

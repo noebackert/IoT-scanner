@@ -6,6 +6,7 @@ from scapy.all import ARP, Ether, srp
 from ...models.sql import Device, Monitoring, Capture, Anomaly, DataRate ,db
 from ...utils import update_avg_ping, update_content, load_config
 from ...models.sniffer import Sniffer
+from ...controllers.controller import admin_required
 import os
 from datetime import datetime
 import pytz
@@ -52,13 +53,6 @@ def dashboard():
     return render_template(url_for('blueprint.dashboard') + '.html', content=content, username = current_user.username)
 
  
-@login_required
-def get_data_rate():
-    """
-    Get the data rate of the devices.
-    """
-    montreal_tz = pytz.timezone(LOCALISATION)
-    batch_size = int(request.args.get('batch', 1))
 
 @login_required
 def get_data_rate():
@@ -128,7 +122,54 @@ def get_anomalies():
             'id': a.id,
             'anomaly_type': a.anomaly_type,
             'threat_level': a.threat_level,
-            'date': a.date.astimezone(tz).strftime('%Y-%m-%d %H:%M:%S')
+            'threat_label': a.threat_label,
+            'file_path': a.file_path,
+            'date': a.date.astimezone(tz).strftime('%Y-%m-%d %H:%M:%S'),
+            'read': a.read,
         } for a in anomalies
     ]
     return jsonify(anomalies_json)
+
+@admin_required
+def delete_anomaly():
+    """
+    Delete an anomaly.
+    """
+    anomaly_id = request.args.get('anomaly_id')
+    
+    if ',' in anomaly_id:
+        try:
+            anomaly_ids = anomaly_id.split(',')
+            for id in anomaly_ids:
+                anomaly = Anomaly.query.filter_by(id=id).first()
+                if anomaly:
+                    db.session.delete(anomaly)
+        except:
+            redirect(url_for('blueprint.dashboard'))
+    elif 'all' in anomaly_id:
+        try:
+            anomalies = Anomaly.query.all()
+            for anomaly in anomalies:
+                db.session.delete(anomaly)
+        except:
+            redirect(url_for('blueprint.dashboard'))
+    else:
+        anomaly = Anomaly.query.filter_by(id=anomaly_id).first()
+        try:
+            db.session.delete(anomaly)
+        except:
+            redirect(url_for('blueprint.dashboard'))
+    db.session.commit()
+    return redirect(url_for('blueprint.dashboard'))
+
+
+
+def toggle_read():
+    """
+    Mark an anomaly as read.
+    """
+    anomaly_id = request.args.get('anomaly_id')
+    anomaly = Anomaly.query.filter_by(id=anomaly_id).first()
+    anomaly.read = not anomaly.read
+    db.session.commit()
+    return redirect(url_for('blueprint.dashboard'))

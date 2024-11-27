@@ -1,13 +1,55 @@
-export async function renderAnomaliesChart(apiUrl, canvasId, refreshInterval) {
+export async function renderAnomalies(apiUrl, canvasId, refreshInterval) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     let anomaliesChart = null;
     let isUpdating = false;
+    
     async function updateAnomaliesChart() {
         try {
             if (isUpdating) return;
             isUpdating = true;        
             const response = await fetch(apiUrl);
             const data = await response.json();
+            const tableBody = document.getElementById('anomaliesTable');
+            tableBody.innerHTML = ''; // Clear the table
+            console.log(data);
+            data.forEach(anomaly => {
+                const row = document.createElement('tr');
+                // add buttons to mark as read or delete with icons
+                if (anomaly.read === false) {
+                    row.innerHTML = `
+                    <td><b>${anomaly.id}</b></td>
+                    <td><b>${anomaly.anomaly_type}</b></td>
+                    <td><b>${anomaly.file_path}</b></td>
+                    <td><b>${anomaly.threat_label}</b></td>
+                    <td><b>${anomaly.date}</b></td>
+                    <td>
+                        <div style="display:flex; ">
+                            <button id=toggleReadButton${anomaly.id} style="margin:2px" class="btn btn-info" onclick="toggleRead(${anomaly.id})"><i class="fas fa-eye"></i></button>
+                            <button id=deleteButton${anomaly.id} style="margin:2px" class="btn btn-danger" onclick="deleteAnomaly(${anomaly.id})"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                }
+                else
+                {
+                    row.innerHTML = `
+                    <td>${anomaly.id}</td>
+                    <td>${anomaly.anomaly_type}</td>
+                    <td>${anomaly.file_path}</td>
+                    <td>${anomaly.threat_label}</td>
+                    <td>${anomaly.date}</td>
+                    <td>
+                         <div style="display:flex; ">
+                            <button id=toggleReadButton${anomaly.id} style="margin:2px" class="btn btn-info" onclick="toggleRead(${anomaly.id})"><i class="fas fa-eye-slash"></i></button>
+                            <button id=deleteButton${anomaly.id} style="margin:2px" class="btn btn-danger" onclick="deleteAnomaly(${anomaly.id})"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>                
+                    `;
+                }
+                
+                tableBody.insertAdjacentElement('beforeend',row);
+            });
+
 
             // Process the data to group by anomaly type
             const anomalyCounts = data.reduce((counts, anomaly) => {
@@ -30,6 +72,7 @@ export async function renderAnomaliesChart(apiUrl, canvasId, refreshInterval) {
                 anomaliesChart.data.labels = labels;
                 anomaliesChart.data.datasets[0].data = values;
                 anomaliesChart.update();
+                
             } else {
                 // Create the chart
                 anomaliesChart = new Chart(ctx, {
@@ -74,20 +117,25 @@ export async function renderAnomaliesChart(apiUrl, canvasId, refreshInterval) {
             console.error('Error updating Anomalies Chart:', error);
         } finally {
             isUpdating = false;
+
         }
     }
-
+    if (refreshInterval === 0) {
     // Initial render and periodic updates
+    return;
+    }
     await updateAnomaliesChart();
-
     setInterval(updateAnomaliesChart, refreshInterval * 1000);
+    
+
 }
+
+
 
 export async function renderDataRateChart(apiUrl, canvasId, refreshInterval, batchSize) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     let dataRateChart = null;
     let isUpdating = false;
-    console.log("batchSize", batchSize);
     async function updateDataRateChart(batch) {
         try {
             if (isUpdating) return;
@@ -264,12 +312,10 @@ export async function renderOneDeviceChart(canvasId, dataRateOneDevice) {
 export async function fetchDataRatesDevices(apiUrl, listDevicesIds){
     const deviceIds = listDevicesIds.join(',');
     const apiUrlWithParameters = apiUrl.replace('device_ids=', `device_ids=${deviceIds}`);
-    console.log(apiUrlWithParameters);
     fetch(apiUrlWithParameters)
         .then(response => response.json())
         .then(devices => {
             Object.entries(devices).forEach(([deviceId, deviceData]) => {
-                console.log(deviceId, deviceData);
                 const canvasId = `deviceChart-${deviceId}`;
                 const dataRateDevice = deviceData;
                 try{
