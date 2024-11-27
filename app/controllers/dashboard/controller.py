@@ -33,7 +33,6 @@ def dashboard():
         'data': [dr.rate for dr in data_rates],
         'average': average_data_rate,
     }
-
     content = {
         'form': sliderGlobalDataRate(),
         'devices': [d for d in devices],
@@ -94,7 +93,7 @@ def get_data_rate():
         device = Device.query.filter_by(id=device_id).first()
         data_rates = DataRate.query.filter_by(device_id=device_id).order_by(DataRate.date.desc()).limit(10 * batch_size).all()
         mean_data_rate = device.average_data_rate
-        labels = [dr.date.astimezone(montreal_tz).strftime('%H:%M:%S') for dr in data_rates]
+        labels = [dr.date.astimezone(montreal_tz).strftime('%H:%M:%S %m-%d-%y') for dr in data_rates]
         data_rates = [dr for dr in data_rates]
         data_rates_batches = [data_rates[i:i+batch_size] for i in range(0, len(data_rates), batch_size)]
         data_rates_mean = [sum([dr.rate for dr in data_rate_batch])/len(data_rate_batch) for data_rate_batch in data_rates_batches]

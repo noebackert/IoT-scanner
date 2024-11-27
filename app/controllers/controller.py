@@ -7,7 +7,7 @@ from ..models.settings import SettingsForm
 from ..models.sql import db, bcrypt, UserDB
 from ..models.auth import LoginForm, RegisterForm
 from functools import wraps
-from ..utils import setup_logging
+from ..utils import setup_logging, load_config
 
 
 logger = setup_logging()
@@ -132,9 +132,20 @@ def settings():
         Returns:
             - rendered settings.html template
         """
+    config = load_config()
     content = {
-        "form": SettingsForm(),
+        "form": SettingsForm(data={
+        "refreshRate": config["Data_rate"].get("Refresh_global_data_rate", 10),
+        "refreshRateConnectedDevices": config["Data_rate"].get("Refresh_connected_devices", 10),
+        "dosThreshold": config["IDS_settings"].get("DOS_THRESHOLD", 20),
+        "dosStopThreshold": config["IDS_settings"].get("DOS_STOP_THRESHOLD", 50),
+        "dosQueueSize": config["IDS_settings"].get("DOS_QUEUE_SIZE", 1000),
+        "portScanThreshold": config["IDS_settings"].get("PORT_SCAN_THRESHOLD", 20),
+        "timeToWaitAfterAnomaliesPortScan": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("PORT_SCAN", 60),
+        "timeToWaitAfterAnomaliesDos": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("DOS", 60),
+    }),
     }
+    logger.info(f"Settings : {content['form'].data}")
     if content["form"].validate_on_submit():
         from ..utils import save_config
         configJson = {
@@ -157,3 +168,4 @@ def settings():
         save_config(configJson)
         flash('Settings saved!', 'success')
     return render_template('settings.html', content = content, username=current_user.username)
+    

@@ -5,8 +5,8 @@
         "DOS_STOP_THRESHOLD": 50,
         "DOS_QUEUE_SIZE": 1000,
         "TimeToWaitAfterAnomalies": {
-            "PORT_SCAN": 10,
-            "DOS": 10
+            "PORT_SCAN": 60,
+            "DOS": 60
         }
     },
     "Data_rate": {

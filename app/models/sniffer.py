@@ -228,9 +228,8 @@ class IDSSniffer(Thread):
             # To implement:
                 # Ping flood Dos Check
          
-
                 # Suspicious packet size check
-
+ 
                 # Unauth protocols
 
                 # Unusual destination IPs
@@ -239,17 +238,7 @@ class IDSSniffer(Thread):
 
                 # DNS tunneling (abnormal long DNS queries)
 
-                # Malicious payloads (check for kno # Dos Check
-
                 # Suspicious packet size check
-
-                # Unauth protocols
-
-                # Unusual destination IPs
-
-                # Repeated connection attempts (SYN flood)
-
-                # DNS tunneling (abnormal long DNS queries)
 
                 # Malicious payloads (check for known signatures, key words, ..)
  

@@ -13,6 +13,9 @@ from ..utils import load_config
 
 
 class SettingsForm(FlaskForm):
+    def __init__(self, *args, **kwargs):
+        super(SettingsForm, self).__init__(*args, **kwargs)
+        self.config = load_config()
     """ Form to edit settings """
     config = load_config()
     refreshRate = IntegerField('Global Data Rate refresh delay (seconds)', validators=[DataRequired(), NumberRange(min=1, max=300)], default=config["Data_rate"].get("Refresh_global_data_rate", 10), render_kw={"placeholder": "Refresh rate (default = 10)"})
