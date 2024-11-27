@@ -187,93 +187,97 @@ export async function renderDataRateDevices(deviceId) {
 
 
 
-export async function renderOneDeviceChart(apiUrl, canvasId, refreshInterval) {
+export async function renderOneDeviceChart(canvasId, dataRateOneDevice) {
     let dataRateChart = null;
-    let isUpdating = false;
     const ctx = document.getElementById(canvasId).getContext('2d');
-    async function updateOneDeviceChart() {
-        try {
-            if (isUpdating) return;
-            isUpdating = true;
-            const response = await fetch(apiUrl);
-            const result = await response.json();
 
-    
-            const dataRates = result.data; 
-            const labels = result.labels; 
-            const average = result.average;
+    const dataRates = dataRateOneDevice.data; 
+    const labels = dataRateOneDevice.labels; 
+    const average = dataRateOneDevice.average;
 
-            if (dataRateChart) {
-                // Update the chart data
-                dataRateChart.data.labels = labels.reverse(); 
-                dataRateChart.data.datasets[0].data = dataRates.reverse();
-                dataRateChart.data.datasets[1].data = new Array(labels.length).fill(average); 
-                dataRateChart.update();
-            } else {
-                // Create the chart
-                dataRateChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels.reverse(), // Initial labels
-                        datasets: [
-                            {
-                                label: 'Data Rate (bytes/sec)',
-                                data: dataRates.reverse(), // Initial data
-                                borderColor: 'rgba(75, 192, 192, 1)',
-                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                                borderWidth: 2,
-                                fill: true,
-                            },
-                            {
-                                label: 'Average Data Rate',
-                                data: new Array(labels.length).fill(average),
-                                borderColor: 'rgba(255, 99, 132, 1)',
-                                borderDash: [5, 5],
-                                borderWidth: 1,
-                                fill: false,
-                                pointRadius: 0, 
-                                pointHoverRadius: 0, 
-
-                            }
-                        ]
+    if (dataRateChart) {
+        // Update the chart data
+        dataRateChart.data.labels = labels.reverse(); 
+        dataRateChart.data.datasets[0].data = dataRates.reverse();
+        dataRateChart.data.datasets[1].data = new Array(labels.length).fill(average); 
+        dataRateChart.update();
+    } else {
+        // Create the chart
+        dataRateChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels.reverse(), // Initial labels
+                datasets: [
+                    {
+                        label: 'Data Rate (bytes/sec)',
+                        data: dataRates.reverse(), // Initial data
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderWidth: 2,
+                        fill: true,
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        aspectRatio: 2,
-                        plugins: {
-                            legend: {
-                                display: false,
-                                position: 'best',
-                            },
-                        },
-                        scales: {
-                            x: {
-                                title: {
-                                    display: true,
-                                }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                }
-                            }
-                        },
-                        animation: {
-                            duration: 0, // Disable animations
+                    {
+                        label: 'Average Data Rate',
+                        data: new Array(labels.length).fill(average),
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderDash: [5, 5],
+                        borderWidth: 1,
+                        fill: false,
+                        pointRadius: 0, 
+                        pointHoverRadius: 0, 
+
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
+                plugins: {
+                    legend: {
+                        display: false,
+                        position: 'best',
+                    },
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
                         }
                     }
-                });
+                },
+                animation: {
+                    duration: 0, // Disable animations
+                }
             }
-        } catch (error) {
-            console.error('Error updating Data Rate Chart:', error);
-        } finally {
-            isUpdating = false;
-        }
+        });
     }
-
-    // Update the chart periodically
-    updateOneDeviceChart();
-    setInterval(updateOneDeviceChart, refreshInterval);
 }
+
+
+export async function fetchDataRatesDevices(apiUrl, listDevicesIds){
+    const deviceIds = listDevicesIds.join(',');
+    const apiUrlWithParameters = apiUrl.replace('device_ids=', `device_ids=${deviceIds}`);
+    console.log(apiUrlWithParameters);
+    fetch(apiUrlWithParameters)
+        .then(response => response.json())
+        .then(devices => {
+            Object.entries(devices).forEach(([deviceId, deviceData]) => {
+                console.log(deviceId, deviceData);
+                const canvasId = `deviceChart-${deviceId}`;
+                const dataRateDevice = deviceData;
+                try{
+                    renderOneDeviceChart(canvasId, dataRateDevice);
+                } catch {
+                    console.error(`Error rendering chart for device ${device.id}:`, error);
+                }
+            })
+        })
+
+} 

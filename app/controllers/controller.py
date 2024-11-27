@@ -150,7 +150,8 @@ def settings():
                             }
                         },
                         "Data_rate": {
-                            "Refresh_global_data_rate": content["form"].data["refreshRate"]
+                            "Refresh_global_data_rate": content["form"].data["refreshRate"],
+                            "Refresh_connected_devices": content["form"].data["refreshRateConnectedDevices"]
                         }
                     }
         save_config(configJson)

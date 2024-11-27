@@ -10,6 +10,7 @@
         }
     },
     "Data_rate": {
-        "Refresh_global_data_rate": 10
+        "Refresh_global_data_rate": 10,
+        "Refresh_connected_devices": 10
     }
 }

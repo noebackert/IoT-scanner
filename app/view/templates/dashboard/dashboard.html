@@ -196,9 +196,10 @@ License: check the LICENSE file.
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script type="module">
-    import { renderAnomaliesChart, renderDataRateChart, renderDataRateDevices, renderOneDeviceChart} from '../../../assets/js/custom/chart.js';
+    import { renderAnomaliesChart, renderDataRateChart, renderDataRateDevices, fetchDataRatesDevices} from '../../../assets/js/custom/chart.js';
 
     const refreshInterval = {{ content.data_rate_refresh | tojson }};
+    const refreshIntervalConnectedDevices = {{ content.data_rate_connected_devices_refresh | tojson }};
     console.log('Refresh Interval:', refreshInterval);  // Test the value
     document.addEventListener('DOMContentLoaded', () => {
         const batchSize = {{ content.form.slider.data | tojson }};  // Serialize the value correctly
@@ -219,6 +220,7 @@ License: check the LICENSE file.
         fetch("{{ url_for('blueprint.get_data') }}")
             .then(response => response.json())
             .then(devices => {
+                let listDevicesIds = [];
                 const tableBody = document.getElementById('devicesTable');
                 tableBody.innerHTML = ''; // Clear the table
 
@@ -232,26 +234,15 @@ License: check the LICENSE file.
                         </tr>
                     `;
                     tableBody.insertAdjacentHTML('beforeend', row);
-                    renderDeviceChart(device.id)
-
+                    listDevicesIds.push(device.id);
                 });
+            const apiUrl = "{{ url_for('blueprint.get_data_rate', device_ids='') }}";
+            fetchDataRatesDevices(apiUrl, listDevicesIds)
             })
             .catch(error => console.error('Error fetching ping data:', error));
     }
 
-    async function renderDeviceChart(deviceId, refreshInterval = 5000){
-        const canvasId = `deviceChart-${deviceId}`;
-        const apiUrl = `{{ url_for('blueprint.get_data_rate', device_id='') }}${deviceId}`;   
-        try {
-            
-            renderOneDeviceChart(apiUrl, canvasId, refreshInterval);
-            
-        } catch (error) {
-            console.error(`Error rendering chart for device ${deviceId}:`, error);
-        }
-    }
-
-    setInterval(fetchData, 5000);
+    setInterval(fetchData, refreshIntervalConnectedDevices*1000);
     fetchData();
     });
     

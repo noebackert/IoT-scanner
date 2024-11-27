@@ -16,6 +16,7 @@ class SettingsForm(FlaskForm):
     """ Form to edit settings """
     config = load_config()
     refreshRate = IntegerField('Global Data Rate refresh delay (seconds)', validators=[DataRequired(), NumberRange(min=1, max=300)], default=config["Data_rate"].get("Refresh_global_data_rate", 10), render_kw={"placeholder": "Refresh rate (default = 10)"})
+    refreshRateConnectedDevices = IntegerField('Connected Devices refresh delay (seconds)', validators=[DataRequired(), NumberRange(min=1, max=300)], default=config["Data_rate"].get("Refresh_connected_devices", 10), render_kw={"placeholder": "Refresh rate (default = 10)"})
     dosThreshold=IntegerField('DOS threshold', validators=[DataRequired(), NumberRange(min=1, max=100)], default=config["IDS_settings"].get("DOS_THRESHOLD", 20), render_kw={"placeholder": "DOS threshold (default = 20)"})
     dosStopThreshold=IntegerField('DOS stop threshold', validators=[DataRequired(), NumberRange(min=1, max=100)], default=config["IDS_settings"].get("DOS_STOP_THRESHOLD", 50), render_kw={"placeholder": "DOS stop threshold (default = 10)"})
     dosQueueSize=IntegerField('DOS queue size', validators=[DataRequired(), NumberRange(min=1, max=10000)], default=config["IDS_settings"].get("DOS_QUEUE_SIZE", 1000), render_kw={"placeholder": "DOS queue size (default = 1000)"})
