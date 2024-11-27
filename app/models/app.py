@@ -16,7 +16,7 @@ class PyFlaSQL():
     def __init__(self):
         self.logger = setup_logging()
         self.myapp = self.create_app("config")  # Creating the app using the config file
-        self.sniffer = IDSSniffer(self.myapp, INTERFACE, "sniffer.pcap", 1000)
+        self.sniffer = IDSSniffer(self.myapp, "config.json", INTERFACE, "sniffer.pcap", 1000)
         self.snifferDataRate = SnifferDataRate(self.myapp,"config.json",INTERFACE)
         with self.myapp.app_context():
             db.create_all()

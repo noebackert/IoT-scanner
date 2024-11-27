@@ -1,7 +1,7 @@
 """
 Business logic for the main application
 """
-from flask import Flask, render_template, url_for, redirect, flash
+from flask import Flask, render_template, url_for, redirect, flash, request
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from ..models.settings import SettingsForm
 from ..models.sql import db, bcrypt, UserDB
@@ -143,29 +143,40 @@ def settings():
         "portScanThreshold": config["IDS_settings"].get("PORT_SCAN_THRESHOLD", 20),
         "timeToWaitAfterAnomaliesPortScan": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("PORT_SCAN", 60),
         "timeToWaitAfterAnomaliesDos": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("DOS", 60),
-    }),
+    })
     }
-    logger.info(f"Settings : {content['form'].data}")
     if content["form"].validate_on_submit():
-        from ..utils import save_config
-        configJson = {
-                        "IDS_settings": {
-                            "PORT_SCAN_THRESHOLD": content["form"].data["portScanThreshold"],
-                            "DOS_THRESHOLD": content["form"].data["dosThreshold"],
-                            "DOS_STOP_THRESHOLD": content["form"].data["dosStopThreshold"],
-                            "DOS_QUEUE_SIZE": content["form"].data["dosQueueSize"],
-                            "TimeToWaitAfterAnomalies":
-                            {
-                                "PORT_SCAN": content["form"].data["timeToWaitAfterAnomaliesPortScan"],
-                                "DOS": content["form"].data["timeToWaitAfterAnomaliesDos"]
-                            }
-                        },
-                        "Data_rate": {
-                            "Refresh_global_data_rate": content["form"].data["refreshRate"],
-                            "Refresh_connected_devices": content["form"].data["refreshRateConnectedDevices"]
-                        }
+        action = request.form.get("action")
+        if action == "save":
+            # Handle settings form submission
+            from ..utils import save_config
+            configJson = {
+                "IDS_settings": {
+                    "PORT_SCAN_THRESHOLD": content["form"].data["portScanThreshold"],
+                    "DOS_THRESHOLD": content["form"].data["dosThreshold"],
+                    "DOS_STOP_THRESHOLD": content["form"].data["dosStopThreshold"],
+                    "DOS_QUEUE_SIZE": content["form"].data["dosQueueSize"],
+                    "TimeToWaitAfterAnomalies": {
+                        "PORT_SCAN": content["form"].data["timeToWaitAfterAnomaliesPortScan"],
+                        "DOS": content["form"].data["timeToWaitAfterAnomaliesDos"]
                     }
-        save_config(configJson)
-        flash('Settings saved!', 'success')
-    return render_template('settings.html', content = content, username=current_user.username)
-    
+                },
+                "Data_rate": {
+                    "Refresh_global_data_rate": content["form"].data["refreshRate"],
+                    "Refresh_connected_devices": content["form"].data["refreshRateConnectedDevices"]
+                }
+            }
+            save_config(configJson)
+            flash('Settings saved!', 'success')
+            return render_template(url_for('blueprint.settings')+'.html', username=current_user.username, content=content)
+
+        elif action == "default":
+            # Handle reset to default form submission
+            from ..utils import save_config
+            configJson = load_config("config_default.json")
+            save_config(configJson)
+            flash('Settings reset to default!', 'success')
+        # refresh content
+        
+        return redirect(url_for('blueprint.settings'))
+    return render_template(url_for('blueprint.settings')+'.html', username=current_user.username, content=content)

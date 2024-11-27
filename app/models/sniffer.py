@@ -79,10 +79,12 @@ class Sniffer(Thread):
 
 
 class IDSSniffer(Thread):
-    def __init__(self, current_app, interface="wlan1", filepath="sniffer.pcap", max_packets=DOS_QUEUE_SIZE):
+    def __init__(self, current_app, config_path="config.json", interface="wlan1", filepath="sniffer.pcap", max_packets=DOS_QUEUE_SIZE):
         super().__init__()
         self.app = current_app
         self.daemon = True
+        self.config_path = config_path
+        self.config = {}
         self.last_packet = None
         self.interface = interface
         self.filepath = filepath
@@ -102,13 +104,20 @@ class IDSSniffer(Thread):
                         [] for attack_type in self.anomalies}
         self.packets_data_length = {}
 
+    def reload_config(self):
+        try:
+            with open(self.config_path) as config_file:
+                self.config = json.load(config_file)
+        except Exception as e:
+            self.logger.error(f"[!] Failed to load config: {e}")
+            
     def run(self):
         with self.app.app_context():
             try:
+                self.reload_config()
                 sniff(
                     iface=self.interface,
                     prn=self.process_packet,
-                    #timeout=1  # Sniff for 1 second, then re-check events
                 )
             except Exception as e:
                 self.logger.info(f"[!] Sniffer error: {e}")
@@ -148,21 +157,22 @@ class IDSSniffer(Thread):
             if packet.haslayer('TCP'):
                 dst_port = packet['TCP'].dport
                 self.port_scan_tracker[src_ip].add(dst_port)
-                if len(self.port_scan_tracker[src_ip]) > PORT_SCAN_THRESHOLD:
+                if len(self.port_scan_tracker[src_ip]) > self.config["IDS_settings"]["PORT_SCAN_THRESHOLD"]:
                     if not any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected['port_scan']):
-                        #self.logger.info(f"[!] Probable port scan detected from {src_ip}")
-                        self.detectedAnomaliesCount['port_scan'] += 1 # Increment the number of port scan detected
-                        self.anomaliesDetected['port_scan'].append({'victim_ip': dst_ip, 'attacker_ip': src_ip})
-                        try:
-                            self.write_to_file(detectedAnomaly="port_scan")
-                            attacker_device = Device.query.filter_by(ipv4=src_ip).first()
-                            victim_device = Device.query.filter_by(ipv4=dst_ip).first()
-                            log_anomaly(anomaly_type="port_scan", anomaly_number=self.detectedAnomaliesCount['port_scan'], attacker_id=attacker_device.id, id_victim=victim_device.id)
-                            resetThread = Thread(target=self.reset_anomaly_detection, args=(timeToWaitAfterAnomalies['port_scan'], "port_scan", dst_ip, src_ip))
-                            resetThread.start()
-                            return True
-                        except Exception as e:
-                            self.logger.error(f"Error writing anomaly: {e}")
+                        # Check that the src_ip is the initiator and not the victim of the attack
+                        if src_ip != dst_ip:
+                            self.detectedAnomaliesCount['port_scan'] += 1
+                            self.anomaliesDetected['port_scan'].append({'victim_ip': dst_ip, 'attacker_ip': src_ip})
+                            try:
+                                self.write_to_file(detectedAnomaly="port_scan")
+                                attacker_device = Device.query.filter_by(ipv4=src_ip).first()
+                                victim_device = Device.query.filter_by(ipv4=dst_ip).first()
+                                log_anomaly(anomaly_type="port_scan", anomaly_number=self.detectedAnomaliesCount['port_scan'], attacker_id=attacker_device.id, id_victim=victim_device.id)
+                                resetThread = Thread(target=self.reset_anomaly_detection, args=(self.config["IDS_settings"]["TimeToWaitAfterAnomalies"]["PORT_SCAN"], "port_scan", dst_ip, src_ip))
+                                resetThread.start()
+                                return True
+                            except Exception as e:
+                                self.logger.error(f"Error writing anomaly: {e}")
                     else:
                         self.logger.info(f"[!] Port scan from {src_ip} already detected")
                         self.logger.info(f"[!] Logging last packet")
@@ -183,29 +193,31 @@ class IDSSniffer(Thread):
                     self.dos_time_tracker[src_ip][dst_ip] = deque(maxlen=DOS_QUEUE_SIZE)
             self.dos_time_tracker[src_ip][dst_ip].append(time_now)
             # If the time between the first and last packet of the buffer (default size = DOS_QUEUE_SIZE) is less than the threshold (freq = DOS_QUEUE_SIZE/DOS_THRESHOLD packets per second)
-            if len(self.dos_time_tracker[src_ip][dst_ip]) == DOS_QUEUE_SIZE and self.dos_time_tracker[src_ip][dst_ip][-1] - self.dos_time_tracker[src_ip][dst_ip][0] < DOS_THRESHOLD: 
+            if len(self.dos_time_tracker[src_ip][dst_ip]) == DOS_QUEUE_SIZE and self.dos_time_tracker[src_ip][dst_ip][-1] - self.dos_time_tracker[src_ip][dst_ip][0] < DOS_THRESHOLD:
                 # if the attacker is not already in the list of detected anomalies for DoS
                 if not self.is_detected_from_dos(src_ip, dst_ip):
-                    # if the attacker is not already a victim (just replying to a DoS attack)
+                    # Ensure that the victim (dst_ip) is not incorrectly flagged as the attacker
                     if not self.is_detected_from_dos(dst_ip, src_ip):
-                        # check if port_scan is already detected for theses IPs
                         if not self.is_detected_from_port_scan(src_ip, dst_ip) and not self.is_detected_from_port_scan(dst_ip, src_ip):
-                            self.logger.info(f"[!] Probable DoS detected from {src_ip} to {dst_ip}")
-                            self.logger.info(f"[!] self.dos_time_tracker[{src_ip}]: {self.dos_time_tracker[src_ip][dst_ip]}")
                             self.detectedAnomaliesCount['dos'] += 1
-                            self.anomaliesDetected['dos'].append({'victim_ip': dst_ip, 'attacker_ip': src_ip})
+                            self.anomaliesDetected['dos'].append({'victim_ip': dst_ip, 'attacker_ip': src_ip}) 
                             try:
                                 self.write_to_file(detectedAnomaly="dos")
                                 attacker_device = Device.query.filter_by(ipv4=src_ip).first()
                                 victim_device = Device.query.filter_by(ipv4=dst_ip).first()
-                                log_anomaly(anomaly_type="dos", anomaly_number=self.detectedAnomaliesCount['dos'], attacker_id=attacker_device.id, id_victim=victim_device.id)
-                                resetThread = Thread(target=self.reset_anomaly_detection, args=(timeToWaitAfterAnomalies['dos'], "dos", dst_ip, src_ip))
+                                if attacker_device is None:
+                                    log_anomaly(anomaly_type="dos", anomaly_number=self.detectedAnomaliesCount['dos'], attacker_id=None, id_victim=victim_device.id)
+                                    self.logger.error(f"[!] Attacker device not found in database")
+                                else:
+                                    log_anomaly(anomaly_type="dos", anomaly_number=self.detectedAnomaliesCount['dos'], attacker_id=attacker_device.id, id_victim=victim_device.id)
+                                resetThread = Thread(target=self.reset_anomaly_detection, args=(self.config["IDS_settings"]["TimeToWaitAfterAnomalies"]["DOS"], "dos", dst_ip, src_ip))
                                 resetThread.start()
                                 return True
                             except Exception as e:
                                 self.logger.error(f"Error writing anomaly: {e}")
-                    else:
-                        self.write_to_file(detectedAnomaly="dos", append=True)
+                else:
+                    self.write_to_file(detectedAnomaly="dos", append=True)
+                    self.logger.info(f"[!] DoS from {src_ip} already detected, logging last packet")
             elif len(self.dos_time_tracker[src_ip][dst_ip]) == DOS_QUEUE_SIZE \
                 and self.dos_time_tracker[src_ip][dst_ip][-1] - self.dos_time_tracker[src_ip][dst_ip][0] >= DOS_STOP_THRESHOLD and any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected['dos']):
                 # If the time between the first and last packet of the buffer (default size = DOS_QUEUE_SIZE) is more than the threshold (freq = DOS_QUEUE_SIZE/DOS_STOP_THRESHOLD packets per second and the attacker is in the list of detected anomalies for DoS

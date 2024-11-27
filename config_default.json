@@ -1,0 +1,16 @@
+{
+    "IDS_settings": {
+        "PORT_SCAN_THRESHOLD": 20,
+        "DOS_THRESHOLD": 20,
+        "DOS_STOP_THRESHOLD": 50,
+        "DOS_QUEUE_SIZE": 1000,
+        "TimeToWaitAfterAnomalies": {
+            "PORT_SCAN": 60,
+            "DOS": 60
+        }
+    },
+    "Data_rate": {
+        "Refresh_global_data_rate": 10,
+        "Refresh_connected_devices": 10
+    }
+}

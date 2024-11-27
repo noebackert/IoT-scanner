@@ -12,8 +12,8 @@ LOCALISATION = os.getenv('LOCALISATION', 'America/Montreal')
 logger = setup_logging()
 
 
-def load_config():
-    with open('config.json') as config_file:
+def load_config(path="config.json"):
+    with open(path) as config_file:
         return json.load(config_file)
 
 def save_config(config):

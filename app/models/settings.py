@@ -13,9 +13,6 @@ from ..utils import load_config
 
 
 class SettingsForm(FlaskForm):
-    def __init__(self, *args, **kwargs):
-        super(SettingsForm, self).__init__(*args, **kwargs)
-        self.config = load_config()
     """ Form to edit settings """
     config = load_config()
     refreshRate = IntegerField('Global Data Rate refresh delay (seconds)', validators=[DataRequired(), NumberRange(min=1, max=300)], default=config["Data_rate"].get("Refresh_global_data_rate", 10), render_kw={"placeholder": "Refresh rate (default = 10)"})
@@ -27,3 +24,4 @@ class SettingsForm(FlaskForm):
     timeToWaitAfterAnomaliesPortScan=IntegerField('Time to wait after anomalies port scan', validators=[DataRequired(), NumberRange(min=1, max=100)], default=config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("PORT_SCAN", 60), render_kw={"placeholder": "Time to wait after anomalies port scan (default = 60)"})
     timeToWaitAfterAnomaliesDos=IntegerField('Time to wait after anomalies DOS', validators=[DataRequired(), NumberRange(min=1, max=100)], default=config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("DOS", 60), render_kw={"placeholder": "Time to wait after anomalies DOS (default = 60)"})
     submit = SubmitField('Save')
+    submitDefault = SubmitField('Reset to default')
