@@ -2,7 +2,7 @@ from flask import Flask, redirect, render_template, url_for, jsonify, flash, req
 from flask_login import login_required, current_user
 from ...models.dashboard.forms import sliderGlobalDataRate
 from ...models.logging_config import setup_logging
-from scapy.all import ARP, Ether, srp
+from scapy.all import ARP, Ether, srp, rdpcap
 from ...models.sql import Device, Monitoring, Capture, Anomaly, DataRate ,db
 from ...utils import update_avg_ping, update_content, load_config
 from ...models.sniffer import Sniffer
@@ -144,6 +144,7 @@ def delete_anomaly():
                 anomaly = Anomaly.query.filter_by(id=id).first()
                 if anomaly:
                     db.session.delete(anomaly)
+                    os.remove(anomaly.file_path)
         except:
             redirect(url_for('blueprint.dashboard'))
     elif 'all' in anomaly_id:
@@ -151,12 +152,15 @@ def delete_anomaly():
             anomalies = Anomaly.query.all()
             for anomaly in anomalies:
                 db.session.delete(anomaly)
+                os.remove(anomaly.file_path)
+
         except:
             redirect(url_for('blueprint.dashboard'))
     else:
         anomaly = Anomaly.query.filter_by(id=anomaly_id).first()
         try:
             db.session.delete(anomaly)
+            os.remove(anomaly.file_path)
         except:
             redirect(url_for('blueprint.dashboard'))
     db.session.commit()
@@ -173,3 +177,65 @@ def toggle_read():
     anomaly.read = not anomaly.read
     db.session.commit()
     return redirect(url_for('blueprint.dashboard'))
+
+
+
+@login_required
+def anomaly():
+    """ Control the anomaly logs page. """
+    protocols = {
+        1: "ICMP",
+        6: "TCP",
+        17: "UDP/QUIC",
+
+    }
+    ether_type = {
+        0x0800: "IPv4",
+        0x0806: "ARP",
+        0x86DD: "IPv6",
+        0x8847: "MPLS unicast",
+        0x8848: "MPLS multicast",
+        0x8100: "VLAN",
+        0x8843: "PPP",
+        0x8844: "PPP Discovery",
+        0x9000: "Proprietary Protocol",
+    }   
+
+
+    devices = Device.query.all()
+    selected_anomaly = request.args.get('anomaly_id')
+    if selected_anomaly:
+        try:
+            logger.info(f"Selected anomaly: {selected_anomaly}")
+            anomaly = Anomaly.query.filter_by(id=selected_anomaly).first()
+            logger.info(f"Capture file: {anomaly.file_path}")
+            logger.info(f"{os.getcwd()}")
+            packets = rdpcap(anomaly.file_path)
+        except:
+            logger.error(f"Error during reading capture: {anomaly.file_path}")
+            flash(f"Error during reading capture, file probably didn't exist {anomaly.file_path}", 'error')
+            # update database
+            db.session.delete(anomaly)
+            db.session.commit()
+            return redirect(url_for('blueprint.dashboard'))
+        for packet in packets:
+            if packet.haslayer('Raw'):
+                raw_data = packet['Raw'].load  # Access raw payload data
+                #print(f"Raw Data: {raw_data}")
+                print(f"payload: {packet.payload}")
+
+
+    timestamp_start = float(packets[0].time)
+    timestamp_end = float(packets[-1].time)
+    duration = timestamp_end - timestamp_start
+
+    content = {
+        'devices': [d for d in devices],
+        'log': anomaly,
+        'packets' : packets,
+        'duration': duration,
+        'protocols': protocols,
+        'ether_type': ether_type,
+    }
+    content = update_content(content)
+    return render_template(url_for('blueprint.anomaly') + '.html', content=content, username = current_user.username)

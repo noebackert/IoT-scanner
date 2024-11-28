@@ -21,7 +21,7 @@ config = load_config()
 PORT_SCAN_THRESHOLD = 20
 DOS_THRESHOLD = 20
 DOS_STOP_THRESHOLD = 50
-DOS_QUEUE_SIZE = 1000
+DOS_QUEUE_SIZE = 100
 timeToWaitAfterAnomalies = {
     "port_scan": 10,
     "dos": 10

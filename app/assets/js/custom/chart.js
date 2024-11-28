@@ -1,8 +1,8 @@
-export async function renderAnomalies(apiUrl, canvasId, refreshInterval) {
+export async function renderAnomalies(apiUrl, canvasId, refreshInterval,anomalyBlueprintUrl) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     let anomaliesChart = null;
     let isUpdating = false;
-    
+    console.log(anomalyBlueprintUrl);
     async function updateAnomaliesChart() {
         try {
             if (isUpdating) return;
@@ -11,15 +11,18 @@ export async function renderAnomalies(apiUrl, canvasId, refreshInterval) {
             const data = await response.json();
             const tableBody = document.getElementById('anomaliesTable');
             tableBody.innerHTML = ''; // Clear the table
+            let urlLogAnomaly = '';
             console.log(data);
             data.forEach(anomaly => {
+                urlLogAnomaly = anomalyBlueprintUrl.replace('anomalyID', anomaly.id);
+                console.log(urlLogAnomaly);
                 const row = document.createElement('tr');
                 // add buttons to mark as read or delete with icons
                 if (anomaly.read === false) {
                     row.innerHTML = `
                     <td><b>${anomaly.id}</b></td>
                     <td><b>${anomaly.anomaly_type}</b></td>
-                    <td><b>${anomaly.file_path}</b></td>
+                    <td><a href="${urlLogAnomaly}"><b>${anomaly.file_path}</b></a></td>
                     <td><b>${anomaly.threat_label}</b></td>
                     <td><b>${anomaly.date}</b></td>
                     <td>

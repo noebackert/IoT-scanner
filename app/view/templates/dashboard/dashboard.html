@@ -200,7 +200,8 @@ License: check the LICENSE file.
         renderAnomalies(
             "{{ url_for('blueprint.get_anomalies') }}", 
             'anomaliesChart', 
-            refreshInterval
+            refreshInterval,
+            "{{ url_for('blueprint.anomaly', anomaly_id='anomalyID') }}"
         );
         renderDataRateChart(
             "{{ url_for('blueprint.get_data_rate') }}", 

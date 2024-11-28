@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Log {% endblock %}
+{% block content %}
+
+<div class="container p-5 ">
+    <!-- Main Title -->
+    <h1 class="text-center">Global details of the anomaly</h1>
+    <div class="container p-5 my-5 border bg-light">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Filepath</th>
+                    <th>Attacker id</th>
+                    <th>Victim id</th>
+                    <th>Time of start (UTC+0)</th>
+                    <th>Duration</th>
+                    <th>Number of packets</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ content["log"].id}}</td>
+                    <td>{{ content["log"].file_path }}</td>
+                    <td>{{ content["log"].attacker_id }}</td>
+                    <td>{{ content["log"].victim_id }}</td>
+                    <td>{{ content["log"].date }}</td>
+                    <td>{{ "{:.2f}".format(content["duration"]*1000) ~ " ms" }}</td>
+                    <td>{{ content["packets"] | length }}</td>
+                </tr>
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+
+<div class="container">
+    <!-- Main Title -->
+    <h1 class="text-center">Capture Log</h1>
+    <div class="container p-5 my-5 border bg-light">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Packet</th>
+                    <th>Time (s)</th>
+                    <th>Src IP/MAC</th>
+                    <th>Dest IP/MAC</th>
+                    <th>Src Port</th>
+                    <th>Dest Port</th>
+                    <th>Ethernet</th>
+                    <th>Protocol</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for packet in content["packets"] %}
+                <tr>
+                    <tr>
+                        
+                        <td>{{ loop.index }}</td> <!-- Packet number (loop.index) -->
+                        <td>{{ packet.time - content["packets"][0].time }}</td> <!-- Time -->
+                        <td>{% if packet.haslayer('IP') %}{{ packet['IP'].src }}{% elif packet.haslayer('Ether') %}{{ packet['Ether'].src }} {% else %} /{% endif %}</td> <!-- Source IP -->
+                        <td>{% if packet.haslayer('IP') %}{{ packet['IP'].dst }}{% elif packet.haslayer('Ether') %}{{ packet['Ether'].dst }} {% else %} /{% endif %}</td> <!-- Source IP -->
+                        {% if packet.haslayer('TCP') %}
+                        <td>{{ packet['TCP'].sport }}</td> <!-- Source Port -->
+                        <td>{{ packet['TCP'].dport }}</td> <!-- Destination Port -->
+                        {% elif packet.haslayer('UDP') %}
+                        <td>{{ packet['UDP'].sport }}</td> <!-- Source Port -->
+                        <td>{{ packet['UDP'].dport }}</td> <!-- Destination Port -->
+                        {% else %}
+                        <td>/</td>
+                        <td>/</td>
+                        {% endif %}
+                        <td>{{ content["ether_type"][packet['Ether'].type] }}</td> <!-- Ethernet -->
+                        <td>{% if packet.haslayer('IP')%} {{ content["protocols"][packet['IP'].proto] }} {% else %}  / {% endif %}</td> <!-- Protocol -->
+                    </tr>
+                    
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+
+{% endblock %}
+

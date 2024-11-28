@@ -6,7 +6,7 @@ from ...controllers.controller import index, login, register, logout, about, set
 from ...controllers.user_profile.controller import user_profile, modify_password
 from ...controllers.hotspot.controller import hotspot, edit_device, delete_device, get_data, scan
 from ...controllers.capture.controller import capture, log, delete_log
-from ...controllers.dashboard.controller import dashboard, get_data_rate, get_anomalies, delete_anomaly, toggle_read
+from ...controllers.dashboard.controller import dashboard, get_data_rate, get_anomalies, delete_anomaly, toggle_read, anomaly
 
 blueprint = Blueprint('blueprint', __name__, template_folder='../templates', static_folder='../../assets')
 
@@ -40,3 +40,4 @@ blueprint.route('/dashboard/get_data_rate', methods=['GET','POST'])(get_data_rat
 blueprint.route('/dashboard/get_anomalies', methods=['GET','POST'])(get_anomalies)
 blueprint.route('/dashboard/delete_anomaly', methods=['GET','POST'])(delete_anomaly)
 blueprint.route('/dashboard/toggle_read', methods=['GET','POST'])(toggle_read)
+blueprint.route('/dashboard/anomaly', methods=['GET', 'POST'])(anomaly)
