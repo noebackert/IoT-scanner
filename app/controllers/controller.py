@@ -7,7 +7,7 @@ from ..models.settings import SettingsForm
 from ..models.sql import db, bcrypt, UserDB
 from ..models.auth import LoginForm, RegisterForm
 from functools import wraps
-from ..utils import setup_logging, load_config
+from ..utils import setup_logging, load_config, save_config
 
 
 logger = setup_logging()
@@ -143,36 +143,31 @@ def settings():
         "portScanThreshold": config["IDS_settings"].get("PORT_SCAN_THRESHOLD", 20),
         "timeToWaitAfterAnomaliesPortScan": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("PORT_SCAN", 60),
         "timeToWaitAfterAnomaliesDos": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("DOS", 60),
+        "timeToWaitAfterAnomaliesLargePacket": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("LARGE_PACKET", 60)
     })
     }
     if content["form"].validate_on_submit():
         action = request.form.get("action")
         if action == "save":
             # Handle settings form submission
-            from ..utils import save_config
-            configJson = {
-                "IDS_settings": {
-                    "PORT_SCAN_THRESHOLD": content["form"].data["portScanThreshold"],
-                    "DOS_THRESHOLD": content["form"].data["dosThreshold"],
-                    "DOS_STOP_THRESHOLD": content["form"].data["dosStopThreshold"],
-                    "DOS_QUEUE_SIZE": content["form"].data["dosQueueSize"],
-                    "TimeToWaitAfterAnomalies": {
-                        "PORT_SCAN": content["form"].data["timeToWaitAfterAnomaliesPortScan"],
-                        "DOS": content["form"].data["timeToWaitAfterAnomaliesDos"]
-                    }
-                },
-                "Data_rate": {
-                    "Refresh_global_data_rate": content["form"].data["refreshRate"],
-                    "Refresh_connected_devices": content["form"].data["refreshRateConnectedDevices"]
-                }
-            }
+            oldConfigJson = load_config()
+            # update the changed values in the config file
+            configJson = oldConfigJson
+            configJson["Data_rate"]["Refresh_global_data_rate"] = content["form"].data["refreshRate"]
+            configJson["Data_rate"]["Refresh_connected_devices"] = content["form"].data["refreshRateConnectedDevices"]
+            configJson["IDS_settings"]["DOS_THRESHOLD"] = content["form"].data["dosThreshold"]
+            configJson["IDS_settings"]["DOS_STOP_THRESHOLD"] = content["form"].data["dosStopThreshold"]
+            configJson["IDS_settings"]["DOS_QUEUE_SIZE"] = content["form"].data["dosQueueSize"]
+            configJson["IDS_settings"]["PORT_SCAN_THRESHOLD"] = content["form"].data["portScanThreshold"]
+            configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["PORT_SCAN"] = content["form"].data["timeToWaitAfterAnomaliesPortScan"]
+            configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["DOS"] = content["form"].data["timeToWaitAfterAnomaliesDos"]
+            configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["LARGE_PACKET"] = content["form"].data["timeToWaitAfterAnomaliesLargePacket"]           
             save_config(configJson)
             flash('Settings saved!', 'success')
             return render_template(url_for('blueprint.settings')+'.html', username=current_user.username, content=content)
 
         elif action == "default":
             # Handle reset to default form submission
-            from ..utils import save_config
             configJson = load_config("config_default.json")
             save_config(configJson)
             flash('Settings reset to default!', 'success')

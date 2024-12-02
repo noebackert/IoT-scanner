@@ -184,7 +184,7 @@ def edit_device():
                     break
             # if not present in the config file
             else:
-                jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"].append({"device_id": device.id, "threshold": content["form"].largePacketThreshold.data})
+                jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"].append({"device_id": device.id, "ipv4":device.ipv4, "threshold": content["form"].largePacketThreshold.data})
             # update the config file
             save_config(jsonConfig)
             db.session.commit()

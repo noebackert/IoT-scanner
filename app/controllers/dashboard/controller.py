@@ -150,8 +150,11 @@ def delete_anomaly():
     elif 'all' in anomaly_id:
         try:
             anomalies = Anomaly.query.all()
+            logger.info(f"Anomalies : {anomalies}")
             for anomaly in anomalies:
+                logger.info(f"Trying to delete anomaly: {anomaly.id}")
                 db.session.delete(anomaly)
+                logger.info(f"Deleting anomaly: {anomaly.file_path}")
                 os.remove(anomaly.file_path)
 
         except:

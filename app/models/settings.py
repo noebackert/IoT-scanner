@@ -23,5 +23,6 @@ class SettingsForm(FlaskForm):
     portScanThreshold=IntegerField('Port scan threshold', validators=[DataRequired(), NumberRange(min=1, max=100)], default=config["IDS_settings"].get("PORT_SCAN_THRESHOLD", 20), render_kw={"placeholder": "Port scan threshold (default = 20)"})
     timeToWaitAfterAnomaliesPortScan=IntegerField('Time to wait after anomalies port scan', validators=[DataRequired(), NumberRange(min=1, max=100)], default=config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("PORT_SCAN", 60), render_kw={"placeholder": "Time to wait after anomalies port scan (default = 60)"})
     timeToWaitAfterAnomaliesDos=IntegerField('Time to wait after anomalies DOS', validators=[DataRequired(), NumberRange(min=1, max=100)], default=config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("DOS", 60), render_kw={"placeholder": "Time to wait after anomalies DOS (default = 60)"})
+    timeToWaitAfterAnomaliesLargePacket=IntegerField('Time to wait after anomalies large packet', validators=[DataRequired(), NumberRange(min=1, max=100)], default=config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("LARGE_PACKET", 60), render_kw={"placeholder": "Time to wait after anomalies large packet (default = 60)"})
     submit = SubmitField('Save')
     submitDefault = SubmitField('Reset to default')
