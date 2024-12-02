@@ -16,17 +16,7 @@ from ..utils import load_config
 LOCALISATION = os.getenv('LOCALISATION', 'America/Montreal')
 
 config = load_config()
-
-
-PORT_SCAN_THRESHOLD = 20
-DOS_THRESHOLD = 20
-DOS_STOP_THRESHOLD = 50
-DOS_QUEUE_SIZE = 100
-timeToWaitAfterAnomalies = {
-    "port_scan": 10,
-    "dos": 10
-}
-
+max_packets = config["IDS_settings"]["DOS_QUEUE_SIZE"]
 class Sniffer(Thread):
     def __init__(self, interface="wlan1", filepath="capture.pcap"):
         super().__init__()
@@ -79,7 +69,7 @@ class Sniffer(Thread):
 
 
 class IDSSniffer(Thread):
-    def __init__(self, current_app, config_path="config.json", interface="wlan1", filepath="sniffer.pcap", max_packets=DOS_QUEUE_SIZE):
+    def __init__(self, current_app, config_path="config.json", interface="wlan1", filepath="sniffer.pcap", max_packets=max_packets):
         super().__init__()
         self.app = current_app
         self.daemon = True
@@ -187,13 +177,13 @@ class IDSSniffer(Thread):
             if src_ip not in self.dos_time_tracker:
                 self.dos_time_tracker[src_ip] = {}
                 if dst_ip not in self.dos_time_tracker[src_ip]:
-                    self.dos_time_tracker[src_ip][dst_ip] = deque(maxlen=DOS_QUEUE_SIZE)
+                    self.dos_time_tracker[src_ip][dst_ip] = deque(maxlen=self.config["IDS_settings"]["DOS_QUEUE_SIZE"])
             else:
                 if dst_ip not in self.dos_time_tracker[src_ip]:
-                    self.dos_time_tracker[src_ip][dst_ip] = deque(maxlen=DOS_QUEUE_SIZE)
+                    self.dos_time_tracker[src_ip][dst_ip] = deque(maxlen=self.config["IDS_settings"]["DOS_QUEUE_SIZE"])
             self.dos_time_tracker[src_ip][dst_ip].append(time_now)
-            # If the time between the first and last packet of the buffer (default size = DOS_QUEUE_SIZE) is less than the threshold (freq = DOS_QUEUE_SIZE/DOS_THRESHOLD packets per second)
-            if len(self.dos_time_tracker[src_ip][dst_ip]) == DOS_QUEUE_SIZE and self.dos_time_tracker[src_ip][dst_ip][-1] - self.dos_time_tracker[src_ip][dst_ip][0] < DOS_THRESHOLD:
+            # If the time between the first and last packet of the buffer (default size = self.config["IDS_settings"]["DOS_QUEUE_SIZE"]) is less than the threshold (freq = self.config["IDS_settings"]["DOS_QUEUE_SIZE"]/self.config["IDS_settings"]["DOS_THRESHOLD"] packets per second)
+            if len(self.dos_time_tracker[src_ip][dst_ip]) == self.config["IDS_settings"]["DOS_QUEUE_SIZE"] and self.dos_time_tracker[src_ip][dst_ip][-1] - self.dos_time_tracker[src_ip][dst_ip][0] < self.config["IDS_settings"]["DOS_THRESHOLD"]:
                 # if the attacker is not already in the list of detected anomalies for DoS
                 if not self.is_detected_from_dos(src_ip, dst_ip):
                     # Ensure that the victim (dst_ip) is not incorrectly flagged as the attacker
@@ -219,9 +209,9 @@ class IDSSniffer(Thread):
                     self.write_to_file(detectedAnomaly="dos", append=True)
                     self.logger.info(f"[!] DoS from {src_ip} already detected, logging last packet")
                     return True
-            elif len(self.dos_time_tracker[src_ip][dst_ip]) == DOS_QUEUE_SIZE \
-                and self.dos_time_tracker[src_ip][dst_ip][-1] - self.dos_time_tracker[src_ip][dst_ip][0] >= DOS_STOP_THRESHOLD and any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected['dos']):
-                # If the time between the first and last packet of the buffer (default size = DOS_QUEUE_SIZE) is more than the threshold (freq = DOS_QUEUE_SIZE/DOS_STOP_THRESHOLD packets per second and the attacker is in the list of detected anomalies for DoS
+            elif len(self.dos_time_tracker[src_ip][dst_ip]) == self.config["IDS_settings"]["DOS_QUEUE_SIZE"] \
+                and self.dos_time_tracker[src_ip][dst_ip][-1] - self.dos_time_tracker[src_ip][dst_ip][0] >= self.config["IDS_settings"]["DOS_STOP_THRESHOLD"] and any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected['dos']):
+                # If the time between the first and last packet of the buffer (default size = self.config["IDS_settings"]["DOS_QUEUE_SIZE"]) is more than the threshold (freq = self.config["IDS_settings"]["DOS_QUEUE_SIZE"]/self.config["IDS_settings"]["DOS_STOP_THRESHOLD"] packets per second and the attacker is in the list of detected anomalies for DoS
                 self.logger.info(f"[!] End of DoS detected from {src_ip}")
                 try:
                     self.anomaliesDetected['dos'].remove({'victim_ip': dst_ip, 'attacker_ip': src_ip})                    
@@ -230,7 +220,7 @@ class IDSSniffer(Thread):
                     self.logger.error(f"[!] Error resetting DoS detection: {e}")
         return False
 
-    def packet_size_check(self, packet):
+    def average_data_rate_check(self, packet):
         if packet.haslayer(IP):
             src_ip = packet[IP].src
             dst_ip = packet[IP].dst
@@ -274,7 +264,7 @@ class IDSSniffer(Thread):
 
     def detect_anomalies_packet(self, packet):
         """Logic to detect anomalies from single packets"""
-        large_packet_anomaly = self.packet_size_check(packet)
+        large_packet_anomaly = self.average_data_rate_check(packet)
         if large_packet_anomaly:
             return
         port_scan_anomaly = self.detect_port_scan(packet)
@@ -345,7 +335,7 @@ class SnifferDataRate(Thread):
                 sniff(
                     iface=self.interface,
                     prn=self.packet_callback,
-                    timeout=self.capture_duration # Sniff for 1 second, then re-check events
+                    timeout=self.capture_duration # Sniff for capture_duration second, then re-check events
                 )
                 self.upload_data_rate()
                 self.data_rate = {}
