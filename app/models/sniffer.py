@@ -349,8 +349,6 @@ class IDSSniffer(Thread):
  
                 # Unauth protocols
 
-                # Unusual destination IPs
-
                 # Repeated connection attempts (SYN flood)
 
                 # DNS tunneling (abnormal long DNS queries)
