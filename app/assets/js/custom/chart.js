@@ -38,7 +38,7 @@ export async function renderAnomalies(apiUrl, canvasId, refreshInterval,anomalyB
                     row.innerHTML = `
                     <td>${anomaly.id}</td>
                     <td>${anomaly.anomaly_type}</td>
-                    <td>${anomaly.file_path}</td>
+                    <td><a href="${urlLogAnomaly}"><b>${anomaly.file_path}</b></a></td>
                     <td>${anomaly.threat_label}</td>
                     <td>${anomaly.date}</td>
                     <td>

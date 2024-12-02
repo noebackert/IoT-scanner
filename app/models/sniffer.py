@@ -95,7 +95,7 @@ class IDSSniffer(Thread):
         self.packet_counter = 0
         self.port_scan_tracker = {}
         self.dos_time_tracker = {}
-        self.anomalies = ["port_scan", "dos"]
+        self.anomalies = ["port_scan", "dos", "large_packet"]
         self.anomaliesPath = {
             elt: f"app/static/anomalies/{elt}" for elt in self.anomalies
         }
@@ -218,6 +218,7 @@ class IDSSniffer(Thread):
                 else:
                     self.write_to_file(detectedAnomaly="dos", append=True)
                     self.logger.info(f"[!] DoS from {src_ip} already detected, logging last packet")
+                    return True
             elif len(self.dos_time_tracker[src_ip][dst_ip]) == DOS_QUEUE_SIZE \
                 and self.dos_time_tracker[src_ip][dst_ip][-1] - self.dos_time_tracker[src_ip][dst_ip][0] >= DOS_STOP_THRESHOLD and any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected['dos']):
                 # If the time between the first and last packet of the buffer (default size = DOS_QUEUE_SIZE) is more than the threshold (freq = DOS_QUEUE_SIZE/DOS_STOP_THRESHOLD packets per second and the attacker is in the list of detected anomalies for DoS
@@ -229,17 +230,62 @@ class IDSSniffer(Thread):
                     self.logger.error(f"[!] Error resetting DoS detection: {e}")
         return False
 
-   
+    def packet_size_check(self, packet):
+        if packet.haslayer(IP):
+            src_ip = packet[IP].src
+            dst_ip = packet[IP].dst
+            if src_ip not in self.packets_data_length:
+                self.packets_data_length[src_ip] = 0
+            self.packets_data_length[src_ip] += len(packet)
+            for elt in self.config["IDS_settings"]["PACKET_SIZE_THRESHOLD"]:
+                if elt["ipv4"] == dst_ip:
+                    threshold = elt["threshold"]
+                    break
+            else:
+                return False
+            if self.packets_data_length[src_ip] > threshold:
+                self.logger.info(f"[!] Large packet detected from {src_ip}")
+                # Check if large packet is not already detected
+                if not any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected['large_packet']):
+                    self.detectedAnomaliesCount['large_packet'] += 1
+                    self.anomaliesDetected['large_packet'].append({'victim_ip': dst_ip, 'attacker_ip': src_ip})
+                    attacker_device = Device.query.filter_by(ipv4=src_ip).first()
+                    victim_device = Device.query.filter_by(ipv4=dst_ip).first()
+                    try:
+                        
+                        self.write_to_file(detectedAnomaly="large_packet")
+                        if attacker_device is None:
+                            log_anomaly(anomaly_type="large_packet", anomaly_number=self.detectedAnomaliesCount['large_packet'], attacker_id=None, id_victim=victim_device.id)
+                            self.logger.error(f"[!] Attacker device not found in database")
+                        else:
+                            self.logger.info(f"[!] Logging large packet first time")
+                            log_anomaly(anomaly_type="large_packet", anomaly_number=self.detectedAnomaliesCount['large_packet'], attacker_id=attacker_device.id, id_victim=victim_device.id)
+                        resetThread = Thread(target=self.reset_anomaly_detection, args=(self.config["IDS_settings"]["TimeToWaitAfterAnomalies"]["LARGE_PACKET"], "large_packet", dst_ip, src_ip))
+                        resetThread.start()
+                    except Exception as e:
+                        self.logger.error(f"Error writing anomaly: {e}")
+                    return True
+                else:
+                    self.logger.info(f"[!] Large packet from {src_ip} already detected")
+                    self.logger.info(f"[!] Logging last packet")
+                    self.write_to_file(detectedAnomaly="large_packet", append=True)
+                    return True
+        return False
 
     def detect_anomalies_packet(self, packet):
         """Logic to detect anomalies from single packets"""
+        large_packet_anomaly = self.packet_size_check(packet)
+        if large_packet_anomaly:
+            return
         port_scan_anomaly = self.detect_port_scan(packet)
+        if port_scan_anomaly:
+            return
         dos_scan_anomaly = self.detect_dos(packet)
+        if dos_scan_anomaly:
+            return
 
 
             # To implement:
-                # Ping flood Dos Check
-         
                 # Suspicious packet size check
  
                 # Unauth protocols

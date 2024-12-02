@@ -9,7 +9,7 @@ import threading
 import time
 import socket
 from datetime import datetime
-from ...utils import update_avg_ping, update_content
+from ...utils import update_avg_ping, update_content, load_config, save_config
 import pytz
 import os
 from sqlalchemy import cast, String
@@ -89,6 +89,7 @@ def scan():
                         # Monitor the device connection
                         thread = threading.Thread(target=monitor_ping_device, args=(new_device,))
                         thread.start()
+                        
 
                     else: # device already exists
                         logger.info(f"Device {mac} already exists in the database")
@@ -150,7 +151,7 @@ def edit_device():
     Control the edit devices page.
     Login is required to view this page.
     """
-    devices = Device.query.all()
+    devices = Device.query.order_by(cast(Device.ipv4, INET)).all()
     device_mac = request.args.get('device_id', default=None)
     logger.info(f"Device ID: {device_mac}")
     selected_device = Device.query.filter_by(mac=device_mac).first()
@@ -173,6 +174,19 @@ def edit_device():
             device.vendor = content["form"].vendor.data if content["form"].vendor.data else device.vendor
             device.model = content["form"].model.data if content["form"].model.data else None
             device.version = content["form"].version.data if content["form"].version.data else None
+            jsonConfig = load_config()
+            # if already present in the config file
+            logger.info(f"Packet size threshold: {jsonConfig['IDS_settings']['PACKET_SIZE_THRESHOLD']}")
+            for i, elt in enumerate(jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"]):
+                if elt['device_id'] == device.id:
+                    jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"][i]["ipv4"] = device.ipv4
+                    jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"][i]["threshold"] = content["form"].largePacketThreshold.data
+                    break
+            # if not present in the config file
+            else:
+                jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"].append({"device_id": device.id, "threshold": content["form"].largePacketThreshold.data})
+            # update the config file
+            save_config(jsonConfig)
             db.session.commit()
             flash("Device information updated successfully!", "success")
             content = update_content(content)

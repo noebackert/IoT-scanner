@@ -4,9 +4,18 @@
         "DOS_THRESHOLD": 20,
         "DOS_STOP_THRESHOLD": 50,
         "DOS_QUEUE_SIZE": 1000,
+        "PACKET_SIZE_THRESHOLD":
+            [
+                {
+                    "device_id": 1,
+                    "ipv4": "192.168.10.1",
+                    "threshold": 100000000
+                }
+            ],
         "TimeToWaitAfterAnomalies": {
             "PORT_SCAN": 60,
-            "DOS": 60
+            "DOS": 60,
+            "LARGE_PACKET": 60
         }
     },
     "Data_rate": {

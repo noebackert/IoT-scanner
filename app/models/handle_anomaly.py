@@ -11,6 +11,13 @@ labels = {
     4: "High",
     5: "Critical"
 }
+anomaly_threat_levels = {
+        "port_scan": 1,
+        "dos": 2,
+        "large_packet": 2,
+        "malware": 4,
+}
+    
 def log_anomaly(anomaly_type:str, anomaly_number:int, id_victim:int, attacker_id:int=None):
     """
     Logs an anomaly to the database.
@@ -21,16 +28,15 @@ def log_anomaly(anomaly_type:str, anomaly_number:int, id_victim:int, attacker_id
         - id_victim: Integer, id of the victim.
         - attacker_id: Integer, id of the attacker.
     """
-    if anomaly_type == "port_scan":
-        anomaly_threat_level = 1
-    elif anomaly_type == "dos":
-        anomaly_threat_level = 2
+    
+   
+    
     anomaly = Anomaly(
         id_victim = id_victim,
         attacker_id=attacker_id,
         anomaly_type=anomaly_type,
-        threat_level=anomaly_threat_level,
-        threat_label=labels[anomaly_threat_level],
+        threat_level=anomaly_threat_levels[anomaly_type],
+        threat_label=labels[anomaly_threat_levels[anomaly_type]],
         file_path=f"app/static/anomalies/{anomaly_type}/{anomaly_number}.pcap",
         date=datetime.now(pytz.timezone(LOCALISATION)),
         read=False

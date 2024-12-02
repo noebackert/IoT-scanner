@@ -21,4 +21,5 @@ class EditDeviceForm(FlaskForm):
     vendor = StringField('Vendor', validators=[], render_kw={"placeholder": "Vendor"})
     model = StringField('Model', validators=[], render_kw={"placeholder": "Model"})
     version = StringField('Version', validators=[], render_kw={"placeholder": "Version"})
+    largePacketThreshold = IntegerField('Large Packet Threshold (bytes)', validators=[NumberRange(min=0, max=1e9)], render_kw={"placeholder": "Large Packet Threshold"}, default=0)
     submit = SubmitField('Submit')
