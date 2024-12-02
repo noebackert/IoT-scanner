@@ -14,7 +14,7 @@ labels = {
 anomaly_threat_levels = {
         "port_scan": 1,
         "dos": 2,
-        "large_packet": 2,
+        "above_data_rate": 2,
         "malware": 4,
 }
     

@@ -85,14 +85,27 @@ class IDSSniffer(Thread):
         self.packet_counter = 0
         self.port_scan_tracker = {}
         self.dos_time_tracker = {}
-        self.anomalies = ["port_scan", "dos", "large_packet"]
+        self.anomalies = ["port_scan", "dos", "above_data_rate"]
         self.anomaliesPath = {
             elt: f"app/static/anomalies/{elt}" for elt in self.anomalies
         }
         self.detectedAnomaliesCount = {elt : 0 for elt in self.anomalies}
         self.anomaliesDetected = {attack_type: 
                         [] for attack_type in self.anomalies}
-        self.packets_data_length = {}
+        # Merging variables
+        self.data_rate = {}
+        self.total_data_rate = 0
+        self.capture_duration = self.load_capture_duration_from_config()
+
+    def load_capture_duration_from_config(self):
+        """Load capture duration from the config file."""
+        try:
+            with open(self.config_path) as config_file:
+                config = json.load(config_file)
+            return config["Data_rate"].get("Refresh_global_data_rate", 10)
+        except Exception as e:
+            self.logger.error(f"[!] Failed to load capture duration: {e}")
+            return 10  # Default duration
 
     def reload_config(self):
         try:
@@ -103,18 +116,49 @@ class IDSSniffer(Thread):
             
     def run(self):
         with self.app.app_context():
-            try:
-                self.reload_config()
-                sniff(
-                    iface=self.interface,
-                    prn=self.process_packet,
-                )
-            except Exception as e:
-                self.logger.info(f"[!] Sniffer error: {e}")
+            while True:
+                try:
+                    self.reload_config()
+                    self.capture_duration = self.load_capture_duration_from_config()
+                    sniff(
+                        iface=self.interface,
+                        prn=self.process_packet,
+                        timeout=self.capture_duration # Sniff for capture_duration second, then re-check events
+                    )
+                    self.upload_data_rate()
+                    self.total_data_rate = 0
+                except Exception as e:
+                    self.logger.info(f"[!] Sniffer error: {e}")
+    
+    def packet_callback(self, packet):
+        if packet.haslayer(IP):
+            src_ip = packet[IP].src
+            if src_ip not in self.data_rate:
+                self.data_rate[src_ip] = 0
+            self.data_rate[src_ip] += packet[IP].len
+        self.total_data_rate += len(packet)
+
 
     def join(self, timeout=None):
         self.logger.info("[!] Stopping Sniffer")
         super().join(timeout)
+
+    def upload_data_rate(self):
+        with self.app.app_context():
+            devices = Device.query.all()
+            for device in devices:
+                ipv4 = device.ipv4
+                if device.id != 1:
+                    # Check if the device is in the data_rate dictionary
+                    if ipv4 in self.data_rate:
+                        new_data_rate = DataRate(device_id=device.id, rate=self.data_rate[ipv4], date=datetime.now(pytz.timezone(LOCALISATION)))
+                        db.session.add(new_data_rate)
+                    else: # If the device is not in the dictionary, add 0
+                        new_data_rate = DataRate(device_id=device.id, rate=0, date=datetime.now(pytz.timezone(LOCALISATION)))
+                        db.session.add(new_data_rate)
+            new_total_data_rate = DataRate(device_id=1, rate=self.total_data_rate, date=datetime.now(pytz.timezone(LOCALISATION)))
+            db.session.add(new_total_data_rate)
+            db.session.commit()
 
 
     def reset_anomaly_detection(self, timeToWait: int, anomaly: str, victim_ip: str, attacker_ip: str):
@@ -224,52 +268,49 @@ class IDSSniffer(Thread):
         if packet.haslayer(IP):
             src_ip = packet[IP].src
             dst_ip = packet[IP].dst
-            if src_ip not in self.packets_data_length:
-                self.packets_data_length[src_ip] = 0
-            self.packets_data_length[src_ip] += len(packet)
             threshold = get_above_data_rate_threshold(ipv4=src_ip)
             if not threshold:
                 return False
-            if self.packets_data_length[src_ip] > threshold:
-                self.logger.info(f"[!] Large packet detected from {src_ip}")
+            if self.data_rate[src_ip] > threshold:
+                self.logger.info(f"[!] Above data rate detected from {src_ip}")
                 # Check if large packet is not already detected
-                if not any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected['large_packet']):
-                    self.detectedAnomaliesCount['large_packet'] += 1
-                    self.anomaliesDetected['large_packet'].append({'victim_ip': dst_ip, 'attacker_ip': src_ip})
+                if not any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected['above_data_rate']):
+                    self.detectedAnomaliesCount['above_data_rate'] += 1
+                    self.anomaliesDetected['above_data_rate'].append({'victim_ip': dst_ip, 'attacker_ip': src_ip})
                     attacker_device = Device.query.filter_by(ipv4=src_ip).first()
                     victim_device = Device.query.filter_by(ipv4=dst_ip).first()
                     try:
                         
-                        self.write_to_file(detectedAnomaly="large_packet")
+                        self.write_to_file(detectedAnomaly="above_data_rate")
                         if attacker_device is None:
-                            log_anomaly(anomaly_type="large_packet", anomaly_number=self.detectedAnomaliesCount['large_packet'], attacker_id=None, id_victim=victim_device.id)
+                            log_anomaly(anomaly_type="above_data_rate", anomaly_number=self.detectedAnomaliesCount['above_data_rate'], attacker_id=None, id_victim=victim_device.id)
                             self.logger.error(f"[!] Attacker device not found in database")
                         else:
                             self.logger.info(f"[!] Logging large packet first time")
-                            log_anomaly(anomaly_type="large_packet", anomaly_number=self.detectedAnomaliesCount['large_packet'], attacker_id=attacker_device.id, id_victim=victim_device.id)
-                        resetThread = Thread(target=self.reset_anomaly_detection, args=(self.config["IDS_settings"]["TimeToWaitAfterAnomalies"]["LARGE_PACKET"], "large_packet", dst_ip, src_ip))
+                            log_anomaly(anomaly_type="above_data_rate", anomaly_number=self.detectedAnomaliesCount['above_data_rate'], attacker_id=attacker_device.id, id_victim=victim_device.id)
+                        resetThread = Thread(target=self.reset_anomaly_detection, args=(self.config["IDS_settings"]["TimeToWaitAfterAnomalies"]["ABOVE_DATA_RATE"], "above_data_rate", dst_ip, src_ip))
                         resetThread.start()
                     except Exception as e:
                         self.logger.error(f"Error writing anomaly: {e}")
                     return True
                 else:
-                    self.logger.info(f"[!] Large packet from {src_ip} already detected")
+                    self.logger.info(f"[!] Above Data Rate from {src_ip} already detected")
                     self.logger.info(f"[!] Logging last packet")
-                    self.write_to_file(detectedAnomaly="large_packet", append=True)
+                    self.write_to_file(detectedAnomaly="above_data_rate", append=True)
                     return True
         return False
 
     def detect_anomalies_packet(self, packet):
         """Logic to detect anomalies from single packets"""
-        large_packet_anomaly = self.above_data_rate_check(packet)
-        if large_packet_anomaly:
-            return
+        #large_packet_anomaly = self.above_data_rate_check(packet)
+        #if large_packet_anomaly:
+        #    return
         port_scan_anomaly = self.detect_port_scan(packet)
-        if port_scan_anomaly:
-            return
+        #if port_scan_anomaly:
+        #    return
         dos_scan_anomaly = self.detect_dos(packet)
-        if dos_scan_anomaly:
-            return
+        #if dos_scan_anomaly:
+        #    return
 
 
             # To implement:
@@ -286,6 +327,7 @@ class IDSSniffer(Thread):
                 # Malicious payloads (check for known signatures, key words, ..)
  
     def process_packet(self, packet):
+        self.packet_callback(packet)
         self.last_packet = packet
         self.packet_buffer.append(packet)
         self.packet_counter+=1
@@ -301,65 +343,3 @@ class IDSSniffer(Thread):
         self.logger.info(f"[!] Anomalous packets saved to {self.filepath}")
         
            
-
-class SnifferDataRate(Thread):
-    def __init__(self, current_app, config_path="config.json", interface="wlan1"):
-        super().__init__()
-        self.daemon = True
-        self.current_app = current_app
-        self.logger=setup_logging()
-        self.interface = interface
-        self.data_rate = {}
-        self.total_data_rate = 0
-        self.config_path = config_path
-        self.capture_duration = self.load_capture_duration_from_config()
-
-    def load_capture_duration_from_config(self):
-        """Load capture duration from the config file."""
-        try:
-            with open(self.config_path) as config_file:
-                config = json.load(config_file)
-            return config["Data_rate"].get("Refresh_global_data_rate", 10)
-        except Exception as e:
-            self.logger.error(f"[!] Failed to load capture duration: {e}")
-            return 10  # Default duration
-    def run(self):
-        while True:
-            try:
-                self.capture_duration = self.load_capture_duration_from_config()
-                sniff(
-                    iface=self.interface,
-                    prn=self.packet_callback,
-                    timeout=self.capture_duration # Sniff for capture_duration second, then re-check events
-                )
-                self.upload_data_rate()
-                self.data_rate = {}
-                self.total_data_rate = 0
-            except Exception as e:
-                self.logger.info(f"[!] Sniffer error: {e}")
-
-    def packet_callback(self, packet):
-        if packet.haslayer(IP):
-            src_ip = packet[IP].src
-            if src_ip not in self.data_rate:
-                self.data_rate[src_ip] = 0
-            self.data_rate[src_ip] += packet[IP].len
-        self.total_data_rate += len(packet)
-
-    def upload_data_rate(self):
-        with self.current_app.app_context():
-            devices = Device.query.all()
-            for device in devices:
-                ipv4 = device.ipv4
-                if device.id != 1:
-                    # Check if the device is in the data_rate dictionary
-                    if ipv4 in self.data_rate:
-                        new_data_rate = DataRate(device_id=device.id, rate=self.data_rate[ipv4], date=datetime.now(pytz.timezone(LOCALISATION)))
-                        db.session.add(new_data_rate)
-                    else: # If the device is not in the dictionary, add 0
-                        new_data_rate = DataRate(device_id=device.id, rate=0, date=datetime.now(pytz.timezone(LOCALISATION)))
-                        db.session.add(new_data_rate)
-            new_total_data_rate = DataRate(device_id=1, rate=self.total_data_rate, date=datetime.now(pytz.timezone(LOCALISATION)))
-            db.session.add(new_total_data_rate)
-            db.session.commit()
-    

@@ -15,7 +15,7 @@
         "TimeToWaitAfterAnomalies": {
             "PORT_SCAN": 60,
             "DOS": 60,
-            "LARGE_PACKET": 60
+            "ABOVE_DATA_RATE": 60
         }
     },
     "Data_rate": {

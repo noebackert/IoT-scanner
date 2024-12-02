@@ -11,15 +11,15 @@
                 "threshold": 100000000
             },
             {
-                "device_id": 47,
+                "device_id": 48,
                 "ipv4": "192.168.10.65",
-                "threshold": 1000000000
+                "threshold": 1000000
             }
         ],
         "TimeToWaitAfterAnomalies": {
             "PORT_SCAN": 60,
             "DOS": 60,
-            "LARGE_PACKET": 60
+            "ABOVE_DATA_RATE": 60
         }
     },
     "Data_rate": {

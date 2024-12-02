@@ -143,7 +143,7 @@ def settings():
         "portScanThreshold": config["IDS_settings"].get("PORT_SCAN_THRESHOLD", 20),
         "timeToWaitAfterAnomaliesPortScan": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("PORT_SCAN", 60),
         "timeToWaitAfterAnomaliesDos": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("DOS", 60),
-        "timeToWaitAfterAnomaliesLargePacket": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("LARGE_PACKET", 60)
+        "timeToWaitAfterAnomaliesLargePacket": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("ABOVE_DATA_RATE", 60)
     })
     }
     if content["form"].validate_on_submit():
@@ -161,7 +161,7 @@ def settings():
             configJson["IDS_settings"]["PORT_SCAN_THRESHOLD"] = content["form"].data["portScanThreshold"]
             configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["PORT_SCAN"] = content["form"].data["timeToWaitAfterAnomaliesPortScan"]
             configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["DOS"] = content["form"].data["timeToWaitAfterAnomaliesDos"]
-            configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["LARGE_PACKET"] = content["form"].data["timeToWaitAfterAnomaliesLargePacket"]           
+            configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["ABOVE_DATA_RATE"] = content["form"].data["timeToWaitAfterAnomaliesLargePacket"]           
             save_config(configJson)
             flash('Settings saved!', 'success')
             return render_template(url_for('blueprint.settings')+'.html', username=current_user.username, content=content)
