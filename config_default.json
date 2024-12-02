@@ -4,7 +4,7 @@
         "DOS_THRESHOLD": 20,
         "DOS_STOP_THRESHOLD": 50,
         "DOS_QUEUE_SIZE": 1000,
-        "PACKET_SIZE_THRESHOLD":
+        "DATA_RATE_THRESHOLD":
             [
                 {
                     "device_id": 1,

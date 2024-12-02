@@ -11,7 +11,7 @@ from datetime import datetime
 import pytz
 import os
 import json
-from ..utils import load_config
+from ..utils import load_config, get_above_data_rate_threshold
 
 LOCALISATION = os.getenv('LOCALISATION', 'America/Montreal')
 
@@ -220,18 +220,15 @@ class IDSSniffer(Thread):
                     self.logger.error(f"[!] Error resetting DoS detection: {e}")
         return False
 
-    def average_data_rate_check(self, packet):
+    def above_data_rate_check(self, packet):
         if packet.haslayer(IP):
             src_ip = packet[IP].src
             dst_ip = packet[IP].dst
             if src_ip not in self.packets_data_length:
                 self.packets_data_length[src_ip] = 0
             self.packets_data_length[src_ip] += len(packet)
-            for elt in self.config["IDS_settings"]["PACKET_SIZE_THRESHOLD"]:
-                if elt["ipv4"] == dst_ip:
-                    threshold = elt["threshold"]
-                    break
-            else:
+            threshold = get_above_data_rate_threshold(ipv4=src_ip)
+            if not threshold:
                 return False
             if self.packets_data_length[src_ip] > threshold:
                 self.logger.info(f"[!] Large packet detected from {src_ip}")
@@ -264,7 +261,7 @@ class IDSSniffer(Thread):
 
     def detect_anomalies_packet(self, packet):
         """Logic to detect anomalies from single packets"""
-        large_packet_anomaly = self.average_data_rate_check(packet)
+        large_packet_anomaly = self.above_data_rate_check(packet)
         if large_packet_anomaly:
             return
         port_scan_anomaly = self.detect_port_scan(packet)
@@ -285,8 +282,6 @@ class IDSSniffer(Thread):
                 # Repeated connection attempts (SYN flood)
 
                 # DNS tunneling (abnormal long DNS queries)
-
-                # Suspicious packet size check
 
                 # Malicious payloads (check for known signatures, key words, ..)
  

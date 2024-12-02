@@ -9,7 +9,7 @@ import threading
 import time
 import socket
 from datetime import datetime
-from ...utils import update_avg_ping, update_content, load_config, save_config, add_large_packet_threshold, delete_large_packet_threshold
+from ...utils import update_avg_ping, update_content, load_config, save_config, add_large_packet_threshold, delete_large_packet_threshold, get_above_data_rate_threshold
 import pytz
 import os
 from sqlalchemy import cast, String
@@ -157,12 +157,14 @@ def edit_device():
     logger.info(f"Device ID: {device_mac}")
     selected_device = Device.query.filter_by(mac=device_mac).first()
     logger.info(f"Selected device: {selected_device}")
-    
+    threshold = get_above_data_rate_threshold(selected_device)
+
     content = {
         "form": EditDeviceForm(),
         "selected_device": selected_device,
         "devices": [d for d in devices
         ],
+        "threshold": f"{threshold:.0e} Bytes"
     }
     logger.info(f"Form validation status: {content['form'].validate_on_submit()}")
     logger.info(f"Form errors: {content['form'].errors}")
@@ -175,7 +177,7 @@ def edit_device():
             device.vendor = content["form"].vendor.data if content["form"].vendor.data else device.vendor
             device.model = content["form"].model.data if content["form"].model.data else None
             device.version = content["form"].version.data if content["form"].version.data else None
-            threshold = int(content["form"].largePacketThreshold.data)
+            threshold = int(content["form"].aboveDataRateThreshold.data)
             add_large_packet_threshold(device=device, threshold=threshold)
             db.session.commit()
             flash("Device information updated successfully!", "success")

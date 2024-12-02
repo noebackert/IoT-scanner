@@ -76,21 +76,33 @@ def ping_check(device:Device):
 
 def add_large_packet_threshold(device:Device, threshold:int=int(1e6)):
     jsonConfig = load_config()
-    logger.info(f"Packet size threshold: {jsonConfig['IDS_settings']['PACKET_SIZE_THRESHOLD']}")
-    for i, elt in enumerate(jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"]):
+    logger.info(f"Packet size threshold: {jsonConfig['IDS_settings']['DATA_RATE_THRESHOLD']}")
+    for i, elt in enumerate(jsonConfig['IDS_settings']["DATA_RATE_THRESHOLD"]):
         if elt['device_id'] == device.id:
-            jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"][i]["ipv4"] = device.ipv4
-            jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"][i]["threshold"] = threshold
+            jsonConfig['IDS_settings']["DATA_RATE_THRESHOLD"][i]["ipv4"] = device.ipv4
+            jsonConfig['IDS_settings']["DATA_RATE_THRESHOLD"][i]["threshold"] = threshold
             break
     else:
-        jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"].append({"device_id": device.id, "ipv4":device.ipv4, "threshold": threshold})
+        jsonConfig['IDS_settings']["DATA_RATE_THRESHOLD"].append({"device_id": device.id, "ipv4":device.ipv4, "threshold": threshold})
     save_config(jsonConfig)
 
 def delete_large_packet_threshold(device:Device):
     jsonConfig = load_config()
-    for i, elt in enumerate(jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"]):
-        if elt['device_id'] == device.id:
-            jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"].remove(elt)
-            break
+    if device:
+        for i, elt in enumerate(jsonConfig['IDS_settings']["DATA_RATE_THRESHOLD"]):
+            if elt['device_id'] == device.id:
+                jsonConfig['IDS_settings']["DATA_RATE_THRESHOLD"].remove(elt)
+                break    
     save_config(jsonConfig)
 
+def get_above_data_rate_threshold(device:Device=None, ipv4:str=None):
+    jsonConfig = load_config()
+    if device:
+        for elt in jsonConfig['IDS_settings']["DATA_RATE_THRESHOLD"]:
+            if elt['device_id'] == device.id:
+                return elt['threshold']
+    if ipv4:
+        for elt in jsonConfig['IDS_settings']["DATA_RATE_THRESHOLD"]:
+            if elt['ipv4'] == ipv4:
+                return elt['threshold']
+    return None
