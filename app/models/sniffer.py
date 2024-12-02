@@ -127,6 +127,7 @@ class IDSSniffer(Thread):
                     )
                     self.upload_data_rate()
                     self.total_data_rate = 0
+                    self.data_rate = {}
                 except Exception as e:
                     self.logger.info(f"[!] Sniffer error: {e}")
     
@@ -264,7 +265,7 @@ class IDSSniffer(Thread):
                     self.logger.error(f"[!] Error resetting DoS detection: {e}")
         return False
 
-    def above_data_rate_check(self, packet):
+    def detect_above_data_rate(self, packet):
         if packet.haslayer(IP):
             src_ip = packet[IP].src
             dst_ip = packet[IP].dst
@@ -311,6 +312,7 @@ class IDSSniffer(Thread):
         dos_scan_anomaly = self.detect_dos(packet)
         #if dos_scan_anomaly:
         #    return
+        above_data_rate = self.detect_above_data_rate(packet)
 
 
             # To implement:

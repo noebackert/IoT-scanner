@@ -2,6 +2,7 @@ from ..models.sql import Anomaly,db
 from datetime import datetime
 import pytz
 import os
+from ..utils import load_config
 
 LOCALISATION = os.getenv("LOCALISATION", "America/Montreal")
 labels = {
@@ -11,13 +12,8 @@ labels = {
     4: "High",
     5: "Critical"
 }
-anomaly_threat_levels = {
-        "port_scan": 1,
-        "dos": 2,
-        "above_data_rate": 2,
-        "malware": 4,
-}
-    
+
+
 def log_anomaly(anomaly_type:str, anomaly_number:int, id_victim:int, attacker_id:int=None):
     """
     Logs an anomaly to the database.
@@ -30,7 +26,8 @@ def log_anomaly(anomaly_type:str, anomaly_number:int, id_victim:int, attacker_id
     """
     
    
-    
+    config = load_config()
+    anomaly_threat_levels = config["IDS_settings"]["ThreatLevels"]
     anomaly = Anomaly(
         id_victim = id_victim,
         attacker_id=attacker_id,
