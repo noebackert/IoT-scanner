@@ -9,7 +9,7 @@ import threading
 import time
 import socket
 from datetime import datetime
-from ...utils import update_avg_ping, update_content, load_config, save_config, add_large_packet_threshold, delete_large_packet_threshold, get_above_data_rate_threshold
+from ...utils import update_avg_ping, update_content, load_config, save_config, add_large_packet_threshold, delete_large_packet_threshold, get_above_data_rate_threshold, add_need_internet, get_need_internet
 import pytz
 import os
 from sqlalchemy import cast, String
@@ -90,6 +90,7 @@ def scan():
                         thread = threading.Thread(target=monitor_ping_device, args=(new_device,))
                         thread.start()
                         add_large_packet_threshold(new_device)
+                        add_need_internet(new_device)
                         
 
                     else: # device already exists
@@ -158,13 +159,14 @@ def edit_device():
     selected_device = Device.query.filter_by(mac=device_mac).first()
     logger.info(f"Selected device: {selected_device}")
     threshold = get_above_data_rate_threshold(selected_device)
-
+    needInternet = get_need_internet(selected_device)
     content = {
         "form": EditDeviceForm(),
         "selected_device": selected_device,
         "devices": [d for d in devices
         ],
-        "threshold": f"{threshold:.0e} Bytes"
+        "threshold": f"{threshold:.0e} Bytes",
+        "needInternet": needInternet
     }
     logger.info(f"Form validation status: {content['form'].validate_on_submit()}")
     logger.info(f"Form errors: {content['form'].errors}")
@@ -178,7 +180,9 @@ def edit_device():
             device.model = content["form"].model.data if content["form"].model.data else None
             device.version = content["form"].version.data if content["form"].version.data else None
             threshold = int(content["form"].aboveDataRateThreshold.data)
+            need_internet = content["form"].needInternet.data
             add_large_packet_threshold(device=device, threshold=threshold)
+            add_need_internet(device=device, need_internet=need_internet)
             db.session.commit()
             flash("Device information updated successfully!", "success")
             content = update_content(content)

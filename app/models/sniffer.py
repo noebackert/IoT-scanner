@@ -11,7 +11,7 @@ from datetime import datetime
 import pytz
 import os
 import json
-from ..utils import load_config, get_above_data_rate_threshold
+from ..utils import load_config, get_above_data_rate_threshold, get_need_internet
 
 LOCALISATION = os.getenv('LOCALISATION', 'America/Montreal')
 
@@ -85,7 +85,7 @@ class IDSSniffer(Thread):
         self.packet_counter = 0
         self.port_scan_tracker = {}
         self.dos_time_tracker = {}
-        self.anomalies = ["port_scan", "dos", "above_data_rate"]
+        self.anomalies = ["port_scan", "dos", "above_data_rate", "unusual_ips"]
         self.anomaliesPath = {
             elt: f"app/static/anomalies/{elt}" for elt in self.anomalies
         }
@@ -301,22 +301,51 @@ class IDSSniffer(Thread):
                     return True
         return False
 
+    def detect_unusual_ips(self, packet):
+        anomaly_name = "unusual_ips"
+        if packet.haslayer(IP):
+            src_ip = packet[IP].src
+            dst_ip = packet[IP].dst
+            if not dst_ip.startswith("192.168."):
+                need_internet = get_need_internet(ipv4=src_ip)
+                if not need_internet:
+                    self.logger.info(f"[!] Unusual destination IP detected: {dst_ip}")
+                    if not any(entry['attacker_ip'] == dst_ip for entry in self.anomaliesDetected[anomaly_name]):
+                        self.detectedAnomaliesCount[anomaly_name] += 1
+                        self.anomaliesDetected[anomaly_name].append({'victim_ip': src_ip, 'attacker_ip': dst_ip})
+                        attacker_device = Device.query.filter_by(ipv4=dst_ip).first()
+                        victim_device = Device.query.filter_by(ipv4=src_ip).first()
+                        try:
+                            self.write_to_file(detectedAnomaly=anomaly_name)
+                            if attacker_device is None:
+                                log_anomaly(anomaly_type=anomaly_name, anomaly_number=self.detectedAnomaliesCount[anomaly_name], attacker_id=None, id_victim=victim_device.id)
+                                self.logger.error(f"[!] Attacker device not found in database")
+                            else:
+                                self.logger.info(f"[!] Logging abnormal destination IP for the first time")
+                                log_anomaly(anomaly_type=anomaly_name, anomaly_number=self.detectedAnomaliesCount[anomaly_name], attacker_id=attacker_device.id, id_victim=victim_device.id)
+                            resetThread = Thread(target=self.reset_anomaly_detection, args=(self.config["IDS_settings"]["TimeToWaitAfterAnomalies"]["UNUSUAL_IPS"], anomaly_name, dst_ip, src_ip))
+                            resetThread.start()
+                        except Exception as e:
+                            self.logger.error(f"Error writing anomaly: {e}")
+                        return True
+                    else:
+                        self.logger.info(f"[!] Abnormal destination IP from {src_ip} already detected")
+                        self.logger.info(f"[!] Logging last packet")
+                        self.write_to_file(detectedAnomaly=anomaly_name, append=True)
+                        return True
+            return False
+
+
+
     def detect_anomalies_packet(self, packet):
         """Logic to detect anomalies from single packets"""
-        #large_packet_anomaly = self.above_data_rate_check(packet)
-        #if large_packet_anomaly:
-        #    return
-        port_scan_anomaly = self.detect_port_scan(packet)
-        #if port_scan_anomaly:
-        #    return
-        dos_scan_anomaly = self.detect_dos(packet)
-        #if dos_scan_anomaly:
-        #    return
-        above_data_rate = self.detect_above_data_rate(packet)
 
+        port_scan_anomaly = self.detect_port_scan(packet)
+        dos_scan_anomaly = self.detect_dos(packet)
+        above_data_rate = self.detect_above_data_rate(packet)
+        abnormal_dest_ip = self.detect_unusual_ips(packet)
 
             # To implement:
-                # Suspicious packet size check
  
                 # Unauth protocols
 

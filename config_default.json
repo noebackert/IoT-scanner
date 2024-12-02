@@ -4,24 +4,28 @@
         "DOS_THRESHOLD": 20,
         "DOS_STOP_THRESHOLD": 50,
         "DOS_QUEUE_SIZE": 10000,
-        "DATA_RATE_THRESHOLD":
+        "DEVICES":
             [
                 {
                     "device_id": 1,
                     "ipv4": "192.168.10.1",
-                    "threshold": 100000000
+                    "threshold": 100000000,
+                    "need_internet": true
                 }
             ],
         "TimeToWaitAfterAnomalies": {
             "PORT_SCAN": 60,
             "DOS": 60,
-            "ABOVE_DATA_RATE": 10
+            "ABOVE_DATA_RATE": 10,
+            "UNUSUAL_IPS": 10
         },
         "ThreatLevels" : {
             "port_scan": 1,
             "dos": 2,
             "above_data_rate": 4,
-            "malware": 4
+            "malware": 4,
+            "unusual_ips": 1
+
         }
     },
     "Data_rate": {

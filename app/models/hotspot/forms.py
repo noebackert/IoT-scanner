@@ -21,4 +21,5 @@ class EditDeviceForm(FlaskForm):
     model = StringField('Model', validators=[], render_kw={"placeholder": "Model"})
     version = StringField('Version', validators=[], render_kw={"placeholder": "Version"})
     aboveDataRateThreshold = FloatField('Large Packet Threshold (bytes)', validators=[NumberRange(min=0, max=1e9)], render_kw={"placeholder": "Large Packet Threshold (bytes)"}, default=int(1e6))
+    needInternet = BooleanField('Need Internet', validators=[], render_kw={"placeholder": "Need Internet"}, default=True)
     submit = SubmitField('Submit')
