@@ -72,3 +72,25 @@ def ping_check(device:Device):
     is_online = response.returncode == 0
     logger.info(f"Ping: Device {device.ipv4} is {'online' if is_online else 'offline'}")
     return is_online
+
+
+def add_large_packet_threshold(device:Device, threshold:int=int(1e6)):
+    jsonConfig = load_config()
+    logger.info(f"Packet size threshold: {jsonConfig['IDS_settings']['PACKET_SIZE_THRESHOLD']}")
+    for i, elt in enumerate(jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"]):
+        if elt['device_id'] == device.id:
+            jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"][i]["ipv4"] = device.ipv4
+            jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"][i]["threshold"] = threshold
+            break
+    else:
+        jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"].append({"device_id": device.id, "ipv4":device.ipv4, "threshold": threshold})
+    save_config(jsonConfig)
+
+def delete_large_packet_threshold(device:Device):
+    jsonConfig = load_config()
+    for i, elt in enumerate(jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"]):
+        if elt['device_id'] == device.id:
+            jsonConfig['IDS_settings']["PACKET_SIZE_THRESHOLD"].remove(elt)
+            break
+    save_config(jsonConfig)
+
