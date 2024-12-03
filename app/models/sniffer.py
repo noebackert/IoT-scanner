@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any, Iterable, Mapping
 from scapy.all import sniff, wrpcap, IP, TCP
 from threading import Thread, Event
-from collections import deque
+from collections import deque, Counter
 from .logging_config import setup_logging
 from .handle_anomaly import log_anomaly
 from time import time, sleep
@@ -12,6 +12,7 @@ import pytz
 import os
 import json
 from ..utils import load_config, get_above_data_rate_threshold, get_need_internet
+import math
 
 LOCALISATION = os.getenv('LOCALISATION', 'America/Montreal')
 
@@ -315,6 +316,9 @@ class IDSSniffer(Thread):
                         self.anomaliesDetected[anomaly_name].append({'victim_ip': src_ip, 'attacker_ip': dst_ip})
                         attacker_device = Device.query.filter_by(ipv4=dst_ip).first()
                         victim_device = Device.query.filter_by(ipv4=src_ip).first()
+                        if victim_device is None:
+                            victim_device = Device.query.first()
+
                         try:
                             self.write_to_file(detectedAnomaly=anomaly_name)
                             if attacker_device is None:
@@ -335,7 +339,28 @@ class IDSSniffer(Thread):
                         return True
             return False
 
+    def calculate_entropy(self, data):
+        """Calculate entropy of a string"""
+        frequency = Counter(data)
+        length = len(data)
+        
+        # Calculate entropy
+        entropy = -sum((count / length) * math.log2(count / length) for count in frequency.values())
+        return entropy
 
+    def detect_dns_tunneling(self, packet):
+        if packet.haslayer('DNS'):
+            try:
+                dns_query = packet['DNS'].qd.qname.decode()
+                self.logger.info(f"[*] DNS query: {dns_query}")
+                self.logger.info(f"[*] DNS query length: {len(dns_query)}")
+                self.logger.info(f"[*] DNS query entropy: {self.calculate_entropy(dns_query)}")
+                if len(dns_query) > self.config["IDS_settings"]["DNS_TUNNELING_THRESHOLD"] or self.calculate_entropy(dns_query) > self.config["IDS_settings"]["DNS_ENTROPY_THRESHOLD"]:
+                    self.logger.info(f"[!] DNS tunneling detected: {dns_query}")
+                    return True
+            except Exception as e:
+                self.logger.error(f"Error detecting DNS tunneling: {e}")
+        return False
 
     def detect_anomalies_packet(self, packet):
         """Logic to detect anomalies from single packets"""
@@ -344,6 +369,7 @@ class IDSSniffer(Thread):
         dos_scan_anomaly = self.detect_dos(packet)
         above_data_rate = self.detect_above_data_rate(packet)
         abnormal_dest_ip = self.detect_unusual_ips(packet)
+        dns_tunneling = self.detect_dns_tunneling(packet)
 
             # To implement:
  

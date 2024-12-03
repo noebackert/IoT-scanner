@@ -4,6 +4,8 @@
         "DOS_THRESHOLD": 20,
         "DOS_STOP_THRESHOLD": 50,
         "DOS_QUEUE_SIZE": 10000,
+        "DNS_TUNNELING_THRESHOLD": 50,
+        "DNS_ENTROPY_THRESHOLD": 4.1,
         "DEVICES":
             [
                 {
