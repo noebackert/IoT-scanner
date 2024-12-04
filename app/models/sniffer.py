@@ -17,7 +17,7 @@ import math
 LOCALISATION = os.getenv('LOCALISATION', 'America/Montreal')
 
 config = load_config()
-max_packets = config["IDS_settings"]["DOS_QUEUE_SIZE"]
+max_packets = config["IDS_settings"]["PACKETS_BEFORE_ANOMALY"]
 class Sniffer(Thread):
     def __init__(self, interface="wlan1", filepath="capture.pcap"):
         super().__init__()
@@ -86,7 +86,7 @@ class IDSSniffer(Thread):
         self.packet_counter = 0
         self.port_scan_tracker = {}
         self.dos_time_tracker = {}
-        self.anomalies = ["port_scan", "dos", "above_data_rate", "unusual_ips"]
+        self.anomalies = ["port_scan", "dos", "above_data_rate", "unusual_ips", "dns_tunneling"]
         self.anomaliesPath = {
             elt: f"app/static/anomalies/{elt}" for elt in self.anomalies
         }
@@ -197,18 +197,7 @@ class IDSSniffer(Thread):
                     if not any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected['port_scan']):
                         # Check that the src_ip is the initiator and not the victim of the attack
                         if src_ip != dst_ip:
-                            self.detectedAnomaliesCount['port_scan'] += 1
-                            self.anomaliesDetected['port_scan'].append({'victim_ip': dst_ip, 'attacker_ip': src_ip})
-                            try:
-                                self.write_to_file(detectedAnomaly="port_scan")
-                                attacker_device = Device.query.filter_by(ipv4=src_ip).first()
-                                victim_device = Device.query.filter_by(ipv4=dst_ip).first()
-                                log_anomaly(anomaly_type="port_scan", anomaly_number=self.detectedAnomaliesCount['port_scan'], attacker_id=attacker_device.id, id_victim=victim_device.id)
-                                resetThread = Thread(target=self.reset_anomaly_detection, args=(self.config["IDS_settings"]["TimeToWaitAfterAnomalies"]["PORT_SCAN"], "port_scan", dst_ip, src_ip))
-                                resetThread.start()
-                                return True
-                            except Exception as e:
-                                self.logger.error(f"Error writing anomaly: {e}")
+                            return self.trigger_anomaly(src_ip=src_ip, dst_ip=dst_ip, anomaly_type="port_scan")
                     else:
                         self.logger.info(f"[!] Port scan from {src_ip} already detected")
                         self.logger.info(f"[!] Logging last packet")
@@ -235,22 +224,7 @@ class IDSSniffer(Thread):
                     # Ensure that the victim (dst_ip) is not incorrectly flagged as the attacker
                     if not self.is_detected_from_dos(dst_ip, src_ip):
                         if not self.is_detected_from_port_scan(src_ip, dst_ip) and not self.is_detected_from_port_scan(dst_ip, src_ip):
-                            self.detectedAnomaliesCount['dos'] += 1
-                            self.anomaliesDetected['dos'].append({'victim_ip': dst_ip, 'attacker_ip': src_ip}) 
-                            try:
-                                self.write_to_file(detectedAnomaly="dos")
-                                attacker_device = Device.query.filter_by(ipv4=src_ip).first()
-                                victim_device = Device.query.filter_by(ipv4=dst_ip).first()
-                                if attacker_device is None:
-                                    log_anomaly(anomaly_type="dos", anomaly_number=self.detectedAnomaliesCount['dos'], attacker_id=None, id_victim=victim_device.id)
-                                    self.logger.error(f"[!] Attacker device not found in database")
-                                else:
-                                    log_anomaly(anomaly_type="dos", anomaly_number=self.detectedAnomaliesCount['dos'], attacker_id=attacker_device.id, id_victim=victim_device.id)
-                                resetThread = Thread(target=self.reset_anomaly_detection, args=(self.config["IDS_settings"]["TimeToWaitAfterAnomalies"]["DOS"], "dos", dst_ip, src_ip))
-                                resetThread.start()
-                                return True
-                            except Exception as e:
-                                self.logger.error(f"Error writing anomaly: {e}")
+                            return self.trigger_anomaly(src_ip=src_ip, dst_ip=dst_ip, anomaly_type="dos")
                 else:
                     self.write_to_file(detectedAnomaly="dos", append=True)
                     self.logger.info(f"[!] DoS from {src_ip} already detected, logging last packet")
@@ -277,24 +251,7 @@ class IDSSniffer(Thread):
                 self.logger.info(f"[!] Above data rate detected from {src_ip}")
                 # Check if large packet is not already detected
                 if not any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected['above_data_rate']):
-                    self.detectedAnomaliesCount['above_data_rate'] += 1
-                    self.anomaliesDetected['above_data_rate'].append({'victim_ip': dst_ip, 'attacker_ip': src_ip})
-                    attacker_device = Device.query.filter_by(ipv4=src_ip).first()
-                    victim_device = Device.query.filter_by(ipv4=dst_ip).first()
-                    try:
-                        
-                        self.write_to_file(detectedAnomaly="above_data_rate")
-                        if attacker_device is None:
-                            log_anomaly(anomaly_type="above_data_rate", anomaly_number=self.detectedAnomaliesCount['above_data_rate'], attacker_id=None, id_victim=victim_device.id)
-                            self.logger.error(f"[!] Attacker device not found in database")
-                        else:
-                            self.logger.info(f"[!] Logging large packet first time")
-                            log_anomaly(anomaly_type="above_data_rate", anomaly_number=self.detectedAnomaliesCount['above_data_rate'], attacker_id=attacker_device.id, id_victim=victim_device.id)
-                        resetThread = Thread(target=self.reset_anomaly_detection, args=(self.config["IDS_settings"]["TimeToWaitAfterAnomalies"]["ABOVE_DATA_RATE"], "above_data_rate", dst_ip, src_ip))
-                        resetThread.start()
-                    except Exception as e:
-                        self.logger.error(f"Error writing anomaly: {e}")
-                    return True
+                    return self.trigger_anomaly(src_ip=src_ip, dst_ip=dst_ip, anomaly_type="above_data_rate")
                 else:
                     self.logger.info(f"[!] Above Data Rate from {src_ip} already detected")
                     self.logger.info(f"[!] Logging last packet")
@@ -312,26 +269,7 @@ class IDSSniffer(Thread):
                 if not need_internet:
                     self.logger.info(f"[!] Unusual destination IP detected: {dst_ip}")
                     if not any(entry['attacker_ip'] == dst_ip for entry in self.anomaliesDetected[anomaly_name]):
-                        self.detectedAnomaliesCount[anomaly_name] += 1
-                        self.anomaliesDetected[anomaly_name].append({'victim_ip': src_ip, 'attacker_ip': dst_ip})
-                        attacker_device = Device.query.filter_by(ipv4=dst_ip).first()
-                        victim_device = Device.query.filter_by(ipv4=src_ip).first()
-                        if victim_device is None:
-                            victim_device = Device.query.first()
-
-                        try:
-                            self.write_to_file(detectedAnomaly=anomaly_name)
-                            if attacker_device is None:
-                                log_anomaly(anomaly_type=anomaly_name, anomaly_number=self.detectedAnomaliesCount[anomaly_name], attacker_id=None, id_victim=victim_device.id)
-                                self.logger.error(f"[!] Attacker device not found in database")
-                            else:
-                                self.logger.info(f"[!] Logging abnormal destination IP for the first time")
-                                log_anomaly(anomaly_type=anomaly_name, anomaly_number=self.detectedAnomaliesCount[anomaly_name], attacker_id=attacker_device.id, id_victim=victim_device.id)
-                            resetThread = Thread(target=self.reset_anomaly_detection, args=(self.config["IDS_settings"]["TimeToWaitAfterAnomalies"]["UNUSUAL_IPS"], anomaly_name, dst_ip, src_ip))
-                            resetThread.start()
-                        except Exception as e:
-                            self.logger.error(f"Error writing anomaly: {e}")
-                        return True
+                            return self.trigger_anomaly(src_ip=src_ip, dst_ip=dst_ip, anomaly_type=anomaly_name)
                     else:
                         self.logger.info(f"[!] Abnormal destination IP from {src_ip} already detected")
                         self.logger.info(f"[!] Logging last packet")
@@ -352,12 +290,28 @@ class IDSSniffer(Thread):
         if packet.haslayer('DNS'):
             try:
                 dns_query = packet['DNS'].qd.qname.decode()
+                if packet.haslayer(IP):
+                    src_ip = packet[IP].src
+                    dst_ip = packet[IP].dst
+                else:
+                    src_ip = packet['Ether'].src
+                    dst_ip = packet['Ether'].dst
+                anomaly_name = "dns_tunneling"
+                self.logger.info(f"[*] DNS query from {src_ip} to {dst_ip}")
                 self.logger.info(f"[*] DNS query: {dns_query}")
                 self.logger.info(f"[*] DNS query length: {len(dns_query)}")
                 self.logger.info(f"[*] DNS query entropy: {self.calculate_entropy(dns_query)}")
                 if len(dns_query) > self.config["IDS_settings"]["DNS_TUNNELING_THRESHOLD"] or self.calculate_entropy(dns_query) > self.config["IDS_settings"]["DNS_ENTROPY_THRESHOLD"]:
                     self.logger.info(f"[!] DNS tunneling detected: {dns_query}")
-                    return True
+                    if not any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected[anomaly_name]):
+                        if not any(entry['victim_ip'] == src_ip or entry['victim_ip'] == dst_ip for entry in self.anomaliesDetected[anomaly_name]):
+                            self.logger.info(f"[!] DNS tunneling from {src_ip} to {dst_ip}")
+                            return self.trigger_anomaly(src_ip=packet[IP].src, dst_ip=packet[IP].dst, anomaly_type="dns_tunneling")
+                    else:
+                        self.logger.info(f"[!] DNS tunneling from {src_ip} already detected")
+                        self.logger.info(f"[!] Logging last packet")
+                        self.write_to_file(detectedAnomaly=anomaly_name, append=True)
+                        return True
             except Exception as e:
                 self.logger.error(f"Error detecting DNS tunneling: {e}")
         return False
@@ -394,7 +348,26 @@ class IDSSniffer(Thread):
         if append:
             wrpcap(self.filepath, self.last_packet, append=append) 
         else: 
-            wrpcap(self.filepath, list(self.packet_buffer), append=append) # write the max_len last packets to the file
+            wrpcap(self.filepath, list(self.packet_buffer), append=append)
         self.logger.info(f"[!] Anomalous packets saved to {self.filepath}")
         
-           
+    def trigger_anomaly(self, src_ip:str, dst_ip:str, anomaly_type:str):
+        self.detectedAnomaliesCount[anomaly_type] += 1
+        self.anomaliesDetected[anomaly_type].append({'victim_ip': dst_ip, 'attacker_ip': src_ip})
+        attacker_device = Device.query.filter_by(ipv4=src_ip).first()
+        victim_device = Device.query.filter_by(ipv4=dst_ip).first()
+        try:
+            if victim_device is None:
+                victim_device = Device.query.filter_by(id=1).first()
+
+            self.write_to_file(detectedAnomaly=anomaly_type)
+            if attacker_device is None:
+                log_anomaly(anomaly_type=anomaly_type, anomaly_number=self.detectedAnomaliesCount[anomaly_type], attacker_id=None, id_victim=victim_device.id)
+                self.logger.error(f"[!] Attacker device not found in database")
+            else:
+                log_anomaly(anomaly_type=anomaly_type, anomaly_number=self.detectedAnomaliesCount[anomaly_type], attacker_id=attacker_device.id, id_victim=victim_device.id)
+            resetThread = Thread(target=self.reset_anomaly_detection, args=(self.config["IDS_settings"]["TimeToWaitAfterAnomalies"][anomaly_type], anomaly_type, dst_ip, src_ip))
+            resetThread.start()
+        except Exception as e:
+            self.logger.error(f"Error writing anomaly: {e}")
+        return True

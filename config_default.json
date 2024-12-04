@@ -1,5 +1,6 @@
 {
     "IDS_settings": {
+        "PACKETS_BEFORE_ANOMALY": 100,
         "PORT_SCAN_THRESHOLD": 20,
         "DOS_THRESHOLD": 20,
         "DOS_STOP_THRESHOLD": 50,
@@ -16,10 +17,12 @@
                 }
             ],
         "TimeToWaitAfterAnomalies": {
-            "PORT_SCAN": 60,
-            "DOS": 60,
-            "ABOVE_DATA_RATE": 10,
-            "UNUSUAL_IPS": 10
+            "port_scan": 60,
+            "dos": 60,
+            "above_data_rate": 10,
+            "unusual_ips": 10,
+            "dns_tunneling": 10
+
         },
         "ThreatLevels" : {
             "port_scan": 1,

@@ -1,5 +1,6 @@
 {
     "IDS_settings": {
+        "PACKETS_BEFORE_ANOMALY": 10,
         "PORT_SCAN_THRESHOLD": 20,
         "DOS_THRESHOLD": 20,
         "DOS_STOP_THRESHOLD": 50,
@@ -14,24 +15,26 @@
                 "need_internet": true
             },
             {
-                "device_id": 51,
+                "device_id": 52,
                 "ipv4": "192.168.10.65",
                 "threshold": 1000000,
                 "need_internet": true
             }
         ],
         "TimeToWaitAfterAnomalies": {
-            "PORT_SCAN": 60,
-            "DOS": 60,
-            "ABOVE_DATA_RATE": 60,
-            "UNUSUAL_IPS": 10
+            "port_scan": 60,
+            "dos": 60,
+            "above_data_rate": 60,
+            "unusual_ips": 10,
+            "dns_tunneling": 10
         },
         "ThreatLevels": {
             "port_scan": 1,
             "dos": 2,
             "above_data_rate": 4,
-            "malware": 4,
-            "unusual_ips": 1
+            "unusual_ips": 1,
+            "dns_tunneling": 4,
+            "malware": 4
         }
     },
     "Data_rate": {

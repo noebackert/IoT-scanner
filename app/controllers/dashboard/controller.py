@@ -152,13 +152,15 @@ def delete_anomaly():
             anomalies = Anomaly.query.all()
             logger.info(f"Anomalies : {anomalies}")
             for anomaly in anomalies:
-                logger.info(f"Trying to delete anomaly: {anomaly.id}")
                 db.session.delete(anomaly)
-                logger.info(f"Deleting anomaly: {anomaly.file_path}")
-                os.remove(anomaly.file_path)
+                try:
+                    os.remove(anomaly.file_path)
+                except OSError as e:
+                    logger.error(f"Failed to delete file {anomaly.file_path}: {e}")
+            db.session.commit()
         except Exception as e:
-            logger.error(f"Error during deleting anomalies: {e}")
-            redirect(url_for('blueprint.dashboard'))
+            logger.error(f"Error while deleting all anomalies: {e}")
+            return redirect(url_for('blueprint.dashboard'))
     else:
         anomaly = Anomaly.query.filter_by(id=anomaly_id).first()
         try:

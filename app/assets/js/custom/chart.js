@@ -2,7 +2,6 @@ export async function renderAnomalies(apiUrl, canvasId, refreshInterval,anomalyB
     const ctx = document.getElementById(canvasId).getContext('2d');
     let anomaliesChart = null;
     let isUpdating = false;
-    console.log(anomalyBlueprintUrl);
     async function updateAnomaliesChart() {
         try {
             if (isUpdating) return;
@@ -12,10 +11,8 @@ export async function renderAnomalies(apiUrl, canvasId, refreshInterval,anomalyB
             const tableBody = document.getElementById('anomaliesTable');
             tableBody.innerHTML = ''; // Clear the table
             let urlLogAnomaly = '';
-            console.log(data);
             data.forEach(anomaly => {
                 urlLogAnomaly = anomalyBlueprintUrl.replace('anomalyID', anomaly.id);
-                console.log(urlLogAnomaly);
                 const row = document.createElement('tr');
                 // add buttons to mark as read or delete with icons
                 if (anomaly.read === false) {
