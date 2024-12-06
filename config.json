@@ -15,7 +15,7 @@
                 "need_internet": true
             },
             {
-                "device_id": 52,
+                "device_id": 53,
                 "ipv4": "192.168.10.65",
                 "threshold": 1000000,
                 "need_internet": true

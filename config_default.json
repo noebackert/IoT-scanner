@@ -1,6 +1,6 @@
 {
     "IDS_settings": {
-        "PACKETS_BEFORE_ANOMALY": 100,
+        "PACKETS_BEFORE_ANOMALY": 10,
         "PORT_SCAN_THRESHOLD": 20,
         "DOS_THRESHOLD": 20,
         "DOS_STOP_THRESHOLD": 50,

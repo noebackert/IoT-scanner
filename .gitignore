@@ -7,5 +7,3 @@ __pycache__
 nmap_output.txt
 ping_output.txt
 pings/
-Dataset/
-machineLearningDetection/

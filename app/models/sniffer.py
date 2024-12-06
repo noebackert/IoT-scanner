@@ -316,6 +316,15 @@ class IDSSniffer(Thread):
                 self.logger.error(f"Error detecting DNS tunneling: {e}")
         return False
 
+    def detect_malicious_payload(self, packet):
+        if packet.haslayer("Raw"):
+            payload = packet["Raw"].load.decode(errors="ignore")
+            # Check for malicious keywords in payload
+            if "malware" in payload or "exploit" in payload:
+                self.logger.info(f"[!] Malicious payload detected: {payload}")
+                return True
+
+        
     def detect_anomalies_packet(self, packet):
         """Logic to detect anomalies from single packets"""
 
@@ -324,6 +333,7 @@ class IDSSniffer(Thread):
         above_data_rate = self.detect_above_data_rate(packet)
         abnormal_dest_ip = self.detect_unusual_ips(packet)
         dns_tunneling = self.detect_dns_tunneling(packet)
+        malicious_payload = self.detect_malicious_payload(packet)
 
             # To implement:
  
