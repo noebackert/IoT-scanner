@@ -325,15 +325,18 @@ class IDSSniffer(Thread):
             # Check for malicious keywords in payload
             with open("app/malicious_payloads.txt") as f:
                 malicious_payloads = [line.strip() for line in f.readlines()]
-            if any(signature in payload for signature in malicious_payloads):
-                if not any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected[anomaly_name]):
-                    self.logger.info(f"[!] Malicious payload detected: {payload}")
-                    return self.trigger_anomaly(src_ip=src_ip, dst_ip=dst_ip, anomaly_type=anomaly_name)
-                else:
-                    self.logger.info(f"[!] Malicious packet from {src_ip} already detected")
-                    self.logger.info(f"[!] Logging last packet")
-                    self.write_to_file(detectedAnomaly=anomaly_name, append=True)
-                    return True
+            #if any(signature in payload for signature in malicious_payloads):
+            for signature in malicious_payloads:
+                if signature in payload:
+                    if not any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected[anomaly_name]):
+                        self.logger.info(f"[!] Malicious payload detected: {payload}")
+                        self.logger.info(f"[!] Malicious payload signature: {signature}")
+                        return self.trigger_anomaly(src_ip=src_ip, dst_ip=dst_ip, anomaly_type=anomaly_name)
+                    else:
+                        self.logger.info(f"[!] Malicious packet from {src_ip} already detected")
+                        self.logger.info(f"[!] Logging last packet")
+                        self.write_to_file(detectedAnomaly=anomaly_name, append=True)
+                        return True
 
 
 

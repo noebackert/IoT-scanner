@@ -15,7 +15,7 @@
                 "need_internet": true
             },
             {
-                "device_id": 54,
+                "device_id": 55,
                 "ipv4": "192.168.10.65",
                 "threshold": 1000000,
                 "need_internet": true
@@ -36,7 +36,6 @@
             "unusual_ips": 1,
             "dns_tunneling": 4,
             "malicious_payload": 4
-            
         }
     },
     "Data_rate": {
