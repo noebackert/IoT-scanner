@@ -86,7 +86,7 @@ class IDSSniffer(Thread):
         self.packet_counter = 0
         self.port_scan_tracker = {}
         self.dos_time_tracker = {}
-        self.anomalies = ["port_scan", "dos", "above_data_rate", "unusual_ips", "dns_tunneling"]
+        self.anomalies = ["port_scan", "dos", "above_data_rate", "unusual_ips", "dns_tunneling", "malicious_payload"]
         self.anomaliesPath = {
             elt: f"app/static/anomalies/{elt}" for elt in self.anomalies
         }
@@ -97,7 +97,7 @@ class IDSSniffer(Thread):
         self.data_rate = {}
         self.total_data_rate = 0
         self.capture_duration = self.load_capture_duration_from_config()
-
+       
     def load_capture_duration_from_config(self):
         """Load capture duration from the config file."""
         try:
@@ -318,11 +318,24 @@ class IDSSniffer(Thread):
 
     def detect_malicious_payload(self, packet):
         if packet.haslayer("Raw"):
+            src_ip = packet[IP].src
+            dst_ip = packet[IP].dst
             payload = packet["Raw"].load.decode(errors="ignore")
+            anomaly_name = "malicious_payload"
             # Check for malicious keywords in payload
-            if "malware" in payload or "exploit" in payload:
-                self.logger.info(f"[!] Malicious payload detected: {payload}")
-                return True
+            with open("app/malicious_payloads.txt") as f:
+                malicious_payloads = [line.strip() for line in f.readlines()]
+            if any(signature in payload for signature in malicious_payloads):
+                if not any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected[anomaly_name]):
+                    self.logger.info(f"[!] Malicious payload detected: {payload}")
+                    return self.trigger_anomaly(src_ip=src_ip, dst_ip=dst_ip, anomaly_type=anomaly_name)
+                else:
+                    self.logger.info(f"[!] Malicious packet from {src_ip} already detected")
+                    self.logger.info(f"[!] Logging last packet")
+                    self.write_to_file(detectedAnomaly=anomaly_name, append=True)
+                    return True
+
+
 
         
     def detect_anomalies_packet(self, packet):

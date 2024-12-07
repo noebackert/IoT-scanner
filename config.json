@@ -15,7 +15,7 @@
                 "need_internet": true
             },
             {
-                "device_id": 53,
+                "device_id": 54,
                 "ipv4": "192.168.10.65",
                 "threshold": 1000000,
                 "need_internet": true
@@ -26,7 +26,8 @@
             "dos": 60,
             "above_data_rate": 60,
             "unusual_ips": 10,
-            "dns_tunneling": 10
+            "dns_tunneling": 10,
+            "malicious_payload": 10
         },
         "ThreatLevels": {
             "port_scan": 1,
@@ -34,7 +35,8 @@
             "above_data_rate": 4,
             "unusual_ips": 1,
             "dns_tunneling": 4,
-            "malware": 4
+            "malicious_payload": 4
+            
         }
     },
     "Data_rate": {
