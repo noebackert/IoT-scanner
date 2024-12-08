@@ -118,6 +118,7 @@ def add_need_internet(device:Device, need_internet:bool=True):
     save_config(jsonConfig)
 
 def get_need_internet(device:Device=None, ipv4:str=None):
+    """Return True if a device is configured to need internet and False otherwise."""
     jsonConfig = load_config()
     if device:
         for elt in jsonConfig['IDS_settings']["DEVICES"]:
@@ -127,4 +128,4 @@ def get_need_internet(device:Device=None, ipv4:str=None):
         for elt in jsonConfig['IDS_settings']["DEVICES"]:
             if elt['ipv4'] == ipv4:
                 return elt['need_internet']
-    return None
+    return True

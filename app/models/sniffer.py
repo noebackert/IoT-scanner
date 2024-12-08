@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from typing import Any, Iterable, Mapping
-from scapy.all import sniff, wrpcap, IP, TCP
+from scapy.all import sniff, wrpcap, IP, TCP, ARP
 from threading import Thread, Event
 from collections import deque, Counter
 from .logging_config import setup_logging
@@ -13,6 +13,8 @@ import os
 import json
 from ..utils import load_config, get_above_data_rate_threshold, get_need_internet
 import math
+from app.models.alerter import Alerting
+import asyncio
 
 LOCALISATION = os.getenv('LOCALISATION', 'America/Montreal')
 
@@ -86,7 +88,7 @@ class IDSSniffer(Thread):
         self.packet_counter = 0
         self.port_scan_tracker = {}
         self.dos_time_tracker = {}
-        self.anomalies = ["port_scan", "dos", "above_data_rate", "unusual_ips", "dns_tunneling", "malicious_payload"]
+        self.anomalies = ["port_scan", "dos", "above_data_rate", "unusual_ips", "dns_tunneling", "malicious_payload", "arp_spoofing"]
         self.anomaliesPath = {
             elt: f"app/static/anomalies/{elt}" for elt in self.anomalies
         }
@@ -97,7 +99,9 @@ class IDSSniffer(Thread):
         self.data_rate = {}
         self.total_data_rate = 0
         self.capture_duration = self.load_capture_duration_from_config()
-       
+        self.arp_table = {}
+        self.alerting = Alerting()
+
     def load_capture_duration_from_config(self):
         """Load capture duration from the config file."""
         try:
@@ -327,7 +331,8 @@ class IDSSniffer(Thread):
                 malicious_payloads = [line.strip() for line in f.readlines()]
             #if any(signature in payload for signature in malicious_payloads):
             for signature in malicious_payloads:
-                if signature in payload:
+                # Check if the signature (not case-sensitive) is in the payload
+                if signature.lower() in payload.lower():
                     if not any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected[anomaly_name]):
                         self.logger.info(f"[!] Malicious payload detected: {payload}")
                         self.logger.info(f"[!] Malicious payload signature: {signature}")
@@ -339,6 +344,24 @@ class IDSSniffer(Thread):
                         return True
 
 
+    def detect_arp_spoofing(self, packet):
+        anomaly_name = "arp_spoofing"
+        if packet.haslayer(ARP) and packet[ARP].op == 2:  # ARP Reply
+            src_ip = packet[ARP].psrc
+            src_mac = packet[ARP].hwsrc
+            # Check for conflicting MAC addresses for the same IP
+            if src_ip in self.arp_table:
+                if self.arp_table[src_ip] != src_mac:
+                    self.logger.info(f"[!] ARP Spoofing detected: {src_ip} resolved to {src_mac}")
+                    if not any(entry['attacker_ip'] == src_ip for entry in self.anomaliesDetected[anomaly_name]):
+                        return self.trigger_anomaly(src_ip=src_ip, anomaly_type=anomaly_name)
+                    else:
+                        self.logger.info(f"[!] ARP Spoofing from {src_ip} already detected")
+                        self.write_to_file(detectedAnomaly=anomaly_name, append=True)
+                        return True
+            else:
+                self.arp_table[src_ip] = src_mac
+        return False
 
         
     def detect_anomalies_packet(self, packet):
@@ -350,7 +373,7 @@ class IDSSniffer(Thread):
         abnormal_dest_ip = self.detect_unusual_ips(packet)
         dns_tunneling = self.detect_dns_tunneling(packet)
         malicious_payload = self.detect_malicious_payload(packet)
-
+        arp_spoofing = self.detect_arp_spoofing(packet)
             # To implement:
  
                 # Unauth protocols
@@ -387,6 +410,8 @@ class IDSSniffer(Thread):
                 victim_device = Device.query.filter_by(id=1).first()
 
             self.write_to_file(detectedAnomaly=anomaly_type)
+            asyncio.run(self.alerting.send_alert(alert_name=anomaly_type))
+
             if attacker_device is None:
                 log_anomaly(anomaly_type=anomaly_type, anomaly_number=self.detectedAnomaliesCount[anomaly_type], attacker_id=None, id_victim=victim_device.id)
                 self.logger.error(f"[!] Attacker device not found in database")

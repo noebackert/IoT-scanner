@@ -15,7 +15,13 @@
                 "need_internet": true
             },
             {
-                "device_id": 55,
+                "device_id": 58,
+                "ipv4": "192.168.10.65",
+                "threshold": 1000000,
+                "need_internet": true
+            },
+            {
+                "device_id": 2,
                 "ipv4": "192.168.10.65",
                 "threshold": 1000000,
                 "need_internet": true
@@ -27,7 +33,8 @@
             "above_data_rate": 60,
             "unusual_ips": 10,
             "dns_tunneling": 10,
-            "malicious_payload": 10
+            "malicious_payload": 10,
+            "arp_spoofing": 10
         },
         "ThreatLevels": {
             "port_scan": 1,
@@ -35,7 +42,8 @@
             "above_data_rate": 4,
             "unusual_ips": 1,
             "dns_tunneling": 4,
-            "malicious_payload": 4
+            "malicious_payload": 4,
+            "arp_spoofing": 4
         }
     },
     "Data_rate": {

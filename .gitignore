@@ -1,4 +1,5 @@
 .env
+.recovery_code_mail.txt
 __pycache__
 *.pyc
 *.pyo
