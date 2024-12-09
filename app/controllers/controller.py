@@ -143,7 +143,11 @@ def settings():
         "portScanThreshold": config["IDS_settings"].get("PORT_SCAN_THRESHOLD", 20),
         "timeToWaitAfterAnomaliesPortScan": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("port_scan", 60),
         "timeToWaitAfterAnomaliesDos": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("dos", 60),
-        "timeToWaitAfterAnomaliesLargePacket": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("above_data_rate", 60)
+        "timeToWaitAfterAnomaliesLargePacket": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("above_data_rate", 60),
+        "timeToWaitAfterAnomaliesUnusualIp": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("unusual_ips", 60),
+        "timeToWaitAfterAnomaliesDnsTunneling": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("dns_tunneling", 60),
+        "timeToWaitAfterAnomaliesMaliciousPayload": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("malicious_payload", 60),
+        "timeToWaitAfterAnomaliesArpSpoofing": config["IDS_settings"]["TimeToWaitAfterAnomalies"].get("arp_spoofing", 60)
     })
     }
     if content["form"].validate_on_submit():
@@ -161,7 +165,11 @@ def settings():
             configJson["IDS_settings"]["PORT_SCAN_THRESHOLD"] = content["form"].data["portScanThreshold"]
             configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["port_scan"] = content["form"].data["timeToWaitAfterAnomaliesPortScan"]
             configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["dos"] = content["form"].data["timeToWaitAfterAnomaliesDos"]
-            configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["above_data_rate"] = content["form"].data["timeToWaitAfterAnomaliesLargePacket"]           
+            configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["above_data_rate"] = content["form"].data["timeToWaitAfterAnomaliesLargePacket"]   
+            configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["unusual_ips"] = content["form"].data["timeToWaitAfterAnomaliesUnusualIp"]  
+            configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["dns_tunneling"] = content["form"].data["timeToWaitAfterAnomaliesDnsTunneling"] 
+            configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["malicious_payload"] = content["form"].data["timeToWaitAfterAnomaliesMaliciousPayload"]
+            configJson["IDS_settings"]["TimeToWaitAfterAnomalies"]["arp_spoofing"] = content["form"].data["timeToWaitAfterAnomaliesArpSpoofing"]
             save_config(configJson)
             flash('Settings saved!', 'success')
             return render_template(url_for('blueprint.settings')+'.html', username=current_user.username, content=content)

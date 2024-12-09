@@ -19,9 +19,9 @@
         "TimeToWaitAfterAnomalies": {
             "port_scan": 60,
             "dos": 60,
-            "above_data_rate": 10,
-            "unusual_ips": 10,
-            "dns_tunneling": 10
+            "above_data_rate": 60,
+            "unusual_ips": 60,
+            "dns_tunneling": 60
 
         },
         "ThreatLevels" : {

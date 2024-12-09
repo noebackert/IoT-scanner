@@ -13,42 +13,25 @@
                 "ipv4": "192.168.10.1",
                 "threshold": 100000000,
                 "need_internet": true
-            },
-            {
-                "device_id": 58,
-                "ipv4": "192.168.10.65",
-                "threshold": 1000000,
-                "need_internet": true
-            },
-            {
-                "device_id": 3,
-                "ipv4": "192.168.10.65",
-                "threshold": 1000000,
-                "need_internet": true
             }
         ],
         "TimeToWaitAfterAnomalies": {
             "port_scan": 60,
             "dos": 60,
             "above_data_rate": 60,
-            "unusual_ips": 10,
-            "dns_tunneling": 10,
-            "malicious_payload": 10,
-            "arp_spoofing": 10
+            "unusual_ips": 60,
+            "dns_tunneling": 60
         },
         "ThreatLevels": {
             "port_scan": 1,
             "dos": 2,
             "above_data_rate": 4,
-            "unusual_ips": 1,
-            "dns_tunneling": 4,
-            "malicious_payload": 4,
-            "arp_spoofing": 4
+            "malware": 4,
+            "unusual_ips": 1
         }
     },
     "Data_rate": {
         "Refresh_global_data_rate": 10,
-        "Refresh_connected_devices": 10,
-        "Refresh_above_data_rate": 10
+        "Refresh_connected_devices": 10
     }
 }
