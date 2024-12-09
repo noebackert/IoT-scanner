@@ -20,16 +20,21 @@
             "port_scan": 60,
             "dos": 60,
             "above_data_rate": 60,
+            "malicious_payload": 60,
             "unusual_ips": 60,
-            "dns_tunneling": 60
-
+            "dns_tunneling": 60,
+            "arp_spoofing": 60
+            
         },
         "ThreatLevels" : {
             "port_scan": 1,
             "dos": 2,
             "above_data_rate": 4,
-            "malware": 4,
-            "unusual_ips": 1
+            "malicious_payload": 4,
+            "unusual_ips": 1,
+            "dns_tunneling": 3,
+            "arp_spoofing": 3
+
 
         }
     },

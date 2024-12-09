@@ -372,16 +372,7 @@ class IDSSniffer(Thread):
         dns_tunneling = self.detect_dns_tunneling(packet)
         malicious_payload = self.detect_malicious_payload(packet)
         arp_spoofing = self.detect_arp_spoofing(packet)
-            # To implement:
- 
-                # Unauth protocols
-
-                # Repeated connection attempts (SYN flood)
-
-                # DNS tunneling (abnormal long DNS queries)
-
-                # Malicious payloads (check for known signatures, key words, ..)
- 
+           
     def process_packet(self, packet):
         self.packet_callback(packet)
         self.last_packet = packet
