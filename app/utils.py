@@ -54,12 +54,13 @@ def update_content(content):
     Update the content of the pages.
     """
     tz = pytz.timezone(LOCALISATION)
-
+    logs = db.session.query(Capture, Device).join(Device).all()
     devices = Device.query.order_by(cast(Device.ipv4, INET)).all()
     content['devices'] = [d for d in devices]
-    content['logs'] = db.session.query(Capture, Device).join(Device).all()
+    content['logs'] = [log for log in logs]
     for i in range(0, len(content['logs'])):
-        content['logs'][i].Capture.date = content['logs'][i].Capture.date.astimezone(tz).strftime('%Y-%m-%d %H:%M:%S')
+        # Convert the date to the local timezone
+        content['logs'][i].Capture.date = content['logs'][i].Capture.date.astimezone(tz)
     content['selected_devices'] = [d for d in devices if d.selected]
     return content
 

@@ -154,23 +154,30 @@ def log():
                 #print(f"Raw Data: {raw_data}")
                 print(f"payload: {packet.payload}")
 
+    try:
+        if not packets:
+            flash(f"Capture is empty", 'error')
+            return redirect(url_for('blueprint.capture'))
+        else:
+            timestamp_start = float(packets[0].time)
+            timestamp_end = float(packets[-1].time)
+            duration = timestamp_end - timestamp_start
 
-    timestamp_start = float(packets[0].time)
-    timestamp_end = float(packets[-1].time)
-    duration = timestamp_end - timestamp_start
+            content = {
+                'devices': [d for d in devices],
+                'log': log,
+                'packets' : packets,
+                'duration': duration,
+                'protocols': protocols,
+                'ether_type': ether_type,
+            }
+            content = update_content(content)
 
-    content = {
-        'devices': [d for d in devices],
-        'log': log,
-        'packets' : packets,
-        'duration': duration,
-        'protocols': protocols,
-        'ether_type': ether_type,
-    }
-    content = update_content(content)
-
-    return render_template(url_for('blueprint.log') + '.html', content=content, username = current_user.username)
-
+        return render_template(url_for('blueprint.log') + '.html', content=content, username = current_user.username)
+    except Exception as e:
+        logger.error(f"Error during reading capture: {e}")
+        flash(f"Error during reading capture", 'error')
+        return redirect(url_for('blueprint.capture'))
 
 def get_capture(time:int=None, number:int=None, list_device:list[Device]=None)->bool:
     """

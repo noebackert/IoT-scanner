@@ -1,5 +1,3 @@
-from collections.abc import Callable
-from typing import Any, Iterable, Mapping
 from scapy.all import sniff, wrpcap, IP, TCP, ARP
 from threading import Thread, Event
 from collections import deque, Counter
