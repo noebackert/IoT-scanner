@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from ...models.capture.forms import CaptureTimeForm, CaptureNumberForm, selectForm, CapturePlayForm
 from ...models.logging_config import setup_logging
 from ...models.sql import Device, Capture, Monitoring, db
+from ..controller import admin_required
 from datetime import datetime
 from ...utils import update_avg_ping, update_content
 from scapy.all import sniff, wrpcap, rdpcap, conf
@@ -15,6 +16,7 @@ LOCALISATION=os.getenv('LOCALISATION', 'America/Montreal')
 logger = setup_logging()
 sniffer = None
 
+@admin_required
 @login_required
 def capture():
     """
@@ -34,7 +36,7 @@ def capture():
         'selected_devices': [d for d in devices if d.selected],
         'logs': joined_logs,
         'capture': "stop"
-        }
+    }
     content = update_content(content)
     if content['selectForm'].validate_on_submit():
         if content['selectForm'].action.data == "select":

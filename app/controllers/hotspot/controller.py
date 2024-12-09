@@ -4,6 +4,7 @@ from ...models.hotspot.forms import HotspotForm, EditDeviceForm
 from ...models.logging_config import setup_logging
 from scapy.all import ARP, Ether, srp
 from ...models.sql import Device, Monitoring, Capture, Anomaly, DataRate, db
+from ..controller import admin_required
 import subprocess
 import threading
 import time
@@ -33,7 +34,6 @@ def hotspot():
     logger.info(f"Content : {content}")
    
     return render_template(url_for('blueprint.hotspot') + '.html', content=content, username = current_user.username)
-
 
 
 
@@ -146,7 +146,7 @@ def get_data():
     } for d in devices]
     return jsonify(json_devices)
 
-
+@admin_required
 @login_required
 def edit_device():
     """
@@ -195,7 +195,7 @@ def edit_device():
 
 
 
-
+@admin_required
 @login_required
 def delete_device():
     """

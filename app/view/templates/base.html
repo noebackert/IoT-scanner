@@ -23,7 +23,9 @@ License: check the LICENSE file.
             <div class="sidebar-heading border-bottom bg-light">Custom IDS</div>
             <div class="list-group list-group-flush">
                 <a class="list-group-item list-group-item-action list-group-item-light p-3" href="{{url_for('blueprint.hotspot')}}">Devices</a>
+                {% if current_user.role == 999 %}
                 <a class="list-group-item list-group-item-action list-group-item-light p-3" href="{{url_for('blueprint.capture')}}">Capture</a>
+                {% endif %}
                 <a class="list-group-item list-group-item-action list-group-item-light p-3" href="{{url_for('blueprint.dashboard')}}">Dashboard</a>
             </div>
         </div>

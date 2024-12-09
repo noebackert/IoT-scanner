@@ -64,12 +64,14 @@
                                 ${
                                     device.id !== 1
                                         ? `
+                                            {% if current_user.role == 999 %}
                                             <a href="${deleteDeviceBaseUrl}${encodeURIComponent(device.mac)}">
                                                 <button class="btn btn-danger">Delete</button>
                                             </a>
                                             <a href="${editDeviceBaseUrl}${encodeURIComponent(device.mac)}">
                                                 <button class="btn btn-primary">Edit</button>
                                             </a>
+                                            {% endif %}
                                         `
                                         : `<strong>Hotspot</strong>`
                                 }
@@ -126,12 +128,14 @@
                                 ${
                                     device.id !== 1
                                         ? `
+                                            {% if current_user.role == 999 %}
                                             <a href="${deleteDeviceBaseUrl}${encodeURIComponent(device.mac)}">
                                                 <button class="btn btn-danger">Delete</button>
                                             </a>
                                             <a href="${editDeviceBaseUrl}${encodeURIComponent(device.mac)}">
                                                 <button class="btn btn-primary">Edit</button>
                                             </a>
+                                            {% endif %}
                                         `
                                         : `<strong>Hotspot</strong>`
                                 }
