@@ -34,8 +34,6 @@
             "unusual_ips": 1,
             "dns_tunneling": 3,
             "arp_spoofing": 3
-
-
         }
     },
     "Data_rate": {
