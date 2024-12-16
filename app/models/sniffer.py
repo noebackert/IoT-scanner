@@ -283,8 +283,6 @@ class IDSSniffer(Thread):
         """Calculate entropy of a string"""
         frequency = Counter(data)
         length = len(data)
-        
-        # Calculate entropy
         entropy = -sum((count / length) * math.log2(count / length) for count in frequency.values())
         return entropy
 
